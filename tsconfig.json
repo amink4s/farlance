@@ -36,7 +36,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ],
+, "app/page.jsx", "app/profile/[fid]/page.jsx"  ],
   "exclude": [
     "node_modules"
   ]
