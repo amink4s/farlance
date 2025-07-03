@@ -1,22 +1,22 @@
 // app/profile/[fid]/page.tsx
 
 // Professional comment: This directive marks the component as a Client Component.
-// It's required for using React Hooks like `useState` or `useEffect` and
-// accessing client-side features like URL parameters.
 "use client";
 
-import { useMiniKit } from "@coinbase/onchainkit/minikit";
+// Professional comment: Standard React hooks.
 import { useEffect } from "react";
 import { useParams } from "next/navigation"; // Import hook to get dynamic URL parameters
 
+// PROFESSIONAL COMMENT: Corrected import for MiniKit components
+// using direct named imports as per documentation, now that tsconfig allows it.
+import { useMiniKit } from "@coinbase/onchainkit/minikit";
+
 // Professional comment: Defines the React component for the dynamic user profile page.
-// It receives the dynamic segment (fid) from the URL.
 export default function UserProfilePage() {
   // Professional comment: Access the MiniKit context to signal app readiness to Farcaster.
-  const { setFrameReady, isFrameReady } = useMiniKit();
+  const { setFrameReady, isFrameReady } = useMiniKit(); // Direct hook call
 
   // Professional comment: useParams hook from Next.js to get dynamic route segments.
-  // This allows us to extract the 'fid' from the URL (e.g., /profile/123 becomes { fid: '123' }).
   const params = useParams();
   const fid = params.fid; // Extract the fid from the URL parameters
 
