@@ -1,34 +1,29 @@
-// app/api/user-profile/[fid]/route.ts
+// app/api/user-profile/route.ts
 
 // Professional comment: Import NeynarAPIClient and Configuration for API interactions.
-// Use 'Request' and 'NextResponse' from 'next/server' for Next.js API Route handlers.
+// Use 'NextRequest' (recommended for query params) and 'NextResponse' for Next.js API Route handlers.
 import { NeynarAPIClient, Configuration } from "@neynar/nodejs-sdk";
-import { Request, NextResponse } from "next/server"; // Using Request type for compatibility
+import { NextRequest, NextResponse } from "next/server"; // Using NextRequest as it's better for searchParams
 
-// Professional comment: Initialize Neynar client.
-// It securely accesses the NEYNAR_API_KEY from environment variables.
-// The Configuration object ensures the API key is passed as expected by the SDK.
+// Professional comment: Initialize Neynar client with API key from environment variables.
+// This client instance is used to make calls to Neynar's Farcaster API.
 const neynarClient = new NeynarAPIClient(
   new Configuration({ apiKey: process.env.NEYNAR_API_KEY as string })
 );
 
-// Professional comment: Define the GET handler for this dynamic API route.
-// This function handles incoming GET requests to URLs like /api/user-profile/123.
-// 'request' is the incoming HTTP request.
-// 'context' contains dynamic route parameters (like 'fid').
-export async function GET(
-  request: Request, // The incoming Next.js Request object (using generic Request for broader compatibility)
-  context: { params: { fid: string } } // Professional comment: Correct signature for dynamic route parameters in App Router.
-) {
-  // Professional comment: Extract the Farcaster ID (fid) from the URL parameters.
-  // 'context.params.fid' holds the dynamic segment (e.g., '123' from /api/user-profile/123).
-  const fid = context.params.fid;
+// Professional comment: Define the GET handler for this API route.
+// This function handles incoming GET requests to URLs like /api/user-profile?fid=123.
+// It receives the NextRequest object, which contains URL and search parameters.
+export async function GET(request: NextRequest) {
+  // Professional comment: Extract the Farcaster ID (fid) from the URL's query parameters.
+  // `request.nextUrl.searchParams` is a URLSearchParams object.
+  const fid = request.nextUrl.searchParams.get("fid");
 
-  // Professional comment: Validate that an FID was successfully extracted.
+  // Professional comment: Validate that an FID was provided in the query.
   // If not, return a 400 Bad Request error.
   if (!fid) {
     return NextResponse.json(
-      { error: "Farcaster ID (FID) is required." },
+      { error: "Farcaster ID (FID) is required as a query parameter (e.g., ?fid=123)." },
       { status: 400 } // HTTP 400 Bad Request
     );
   }
