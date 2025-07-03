@@ -1,63 +1,69 @@
 // app/api/user-profile/[fid]/route.ts
 
 // Professional comment: Import NeynarAPIClient and Configuration for API interactions.
-// NextRequest and NextResponse are for Next.js server-side helpers.
+// Use 'Request' and 'NextResponse' from 'next/server' for Next.js API Route handlers.
 import { NeynarAPIClient, Configuration } from "@neynar/nodejs-sdk";
-import { NextRequest, NextResponse } from "next/server";
+import { Request, NextResponse } from "next/server"; // Using Request type for compatibility
 
-// Professional comment: Initialize Neynar client with API key from environment variables.
-// This client instance is used to make calls to Neynar's Farcaster API.
+// Professional comment: Initialize Neynar client.
+// It securely accesses the NEYNAR_API_KEY from environment variables.
+// The Configuration object ensures the API key is passed as expected by the SDK.
 const neynarClient = new NeynarAPIClient(
   new Configuration({ apiKey: process.env.NEYNAR_API_KEY as string })
 );
 
-// PROFESSIONAL COMMENT: Define the GET handler for this API route.
-// It receives the request object and a 'context' object.
-// The 'context' object contains the 'params' which hold dynamic route segments (like 'fid').
+// Professional comment: Define the GET handler for this dynamic API route.
+// This function handles incoming GET requests to URLs like /api/user-profile/123.
+// 'request' is the incoming HTTP request.
+// 'context' contains dynamic route parameters (like 'fid').
 export async function GET(
-  request: NextRequest, // The incoming Next.js request object
-  context: { params: { fid: string } } // PROFESSIONAL COMMENT: Correct signature for dynamic params.
+  request: Request, // The incoming Next.js Request object (using generic Request for broader compatibility)
+  context: { params: { fid: string } } // Professional comment: Correct signature for dynamic route parameters in App Router.
 ) {
-  // PROFESSIONAL COMMENT: Extract the FID from the nested 'context.params' object.
-  // No `await` is needed here as `context.params` is a synchronous object in this context.
-  const fid = context.params.fid; // Corrected: Access fid from context.params
+  // Professional comment: Extract the Farcaster ID (fid) from the URL parameters.
+  // 'context.params.fid' holds the dynamic segment (e.g., '123' from /api/user-profile/123).
+  const fid = context.params.fid;
 
-  // Professional comment: Validate that an FID was provided.
+  // Professional comment: Validate that an FID was successfully extracted.
+  // If not, return a 400 Bad Request error.
   if (!fid) {
     return NextResponse.json(
       { error: "Farcaster ID (FID) is required." },
-      { status: 400 } // Bad Request
+      { status: 400 } // HTTP 400 Bad Request
     );
   }
 
   try {
-    // Professional comment: Convert FID to a number as Neynar's API expects it.
+    // Professional comment: Convert the FID from string to a number, as Neynar's API expects a numerical FID.
     const userFid = parseInt(fid, 10);
 
-    // Professional comment: Use Neynar client's fetchBulkUsers method.
-    // It expects an object with an array of FIDs.
+    // Professional comment: Call Neynar's `fetchBulkUsers` API to get user profile data.
+    // This method expects an object with an array of FIDs.
     const response = await neynarClient.fetchBulkUsers({ fids: [userFid] });
 
-    // Professional comment: Check if a user was found in the response.
-    // fetchBulkUsers returns an object with a 'users' array.
+    // Professional comment: Check if the API returned any users or if the array is empty.
+    // If no user is found for the given FID, return a 404 Not Found error.
     if (!response.users || response.users.length === 0) {
       return NextResponse.json(
         { error: `User with FID ${fid} not found.` },
-        { status: 404 } // Not Found
+        { status: 404 } // HTTP 404 Not Found
       );
     }
 
-    // Professional comment: Return the first user from the fetched array as a JSON response.
-    // status 200 means success.
+    // Professional comment: Extract the first user object from the response array.
     const userData = response.users[0];
-    return NextResponse.json(userData, { status: 200 });
 
+    // Professional comment: Return the fetched user data as a JSON response with a 200 OK status.
+    return NextResponse.json(userData, { status: 200 });
   } catch (error) {
-    // Professional comment: Handle any errors during API call or parsing.
-    console.error("Error fetching user data from Neynar:", error); // Logs detailed error to Vercel/server logs
+    // Professional comment: Catch and log any errors that occur during the API call or processing.
+    // This will print detailed errors to your server's console (e.g., in `npm run dev` terminal or Vercel logs).
+    console.error("Error fetching user data from Neynar:", error);
+
+    // Professional comment: Return a generic 500 Internal Server Error for unhandled exceptions.
     return NextResponse.json(
-      { error: "Failed to fetch user data." },
-      { status: 500 } // Internal Server Error
+      { error: "Failed to fetch user data due to an internal server error." },
+      { status: 500 } // HTTP 500 Internal Server Error
     );
   }
 }
