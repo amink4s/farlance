@@ -1,4 +1,4 @@
-import { sendFrameNotification } from "@/lib/notification-client";
+import { sendFrameNotification } from "@/lib/notification-client.ts";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {

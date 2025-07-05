@@ -18,7 +18,7 @@ import {
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button, Icon, Card } from "./components/ui/shared"; // Updated import path to shared.tsx
-import { createClient as createSupabaseClient } from '@/lib/supabase/client'; // Client-side Supabase client
+import { supabase } from '@/lib/supabase/client'; // Client-side Supabase client
 import Image from 'next/image';
 
 // Define a type for your profile data based on Supabase table
@@ -40,7 +40,8 @@ export default function App() {
 
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true); // Manages loading state for profile
-  const supabase = createSupabaseClient(); // Initialize client-side Supabase client
+  // const supabase = createSupabaseClient(); // Initialize client-side Supabase client
+  const supabaseInstance = supabase;
 
   // Effect to tell MiniKit that the frame is ready to be displayed
   useEffect(() => {

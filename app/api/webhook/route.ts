@@ -2,7 +2,7 @@ import {
   setUserNotificationDetails,
   deleteUserNotificationDetails,
 } from "@/lib/notification";
-import { sendFrameNotification } from "@/lib/notification-client";
+import { sendFrameNotification } from "@/lib/notification-client.ts";
 import { http } from "viem";
 import { createPublicClient } from "viem";
 import { optimism } from "viem/chains";
