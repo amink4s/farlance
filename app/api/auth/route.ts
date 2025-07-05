@@ -40,7 +40,7 @@ async function resolveFarcasterUser(fid: number) {
 }
 
 export async function GET(request: Request) {
-  const authHeader = headers().get('Authorization');
+    const authHeader = (await headers()).get('Authorization');
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return NextResponse.json({ message: 'Missing token' }, { status: 401 });
