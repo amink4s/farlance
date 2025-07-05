@@ -90,170 +90,172 @@ export default function App() {
 
   // Effect to get or create user profile in Supabase
   useEffect(() => {
-    async function getOrCreateProfile() {
-      // Use optional chaining for context properties.
-      // With frame-sdk ^0.0.64, these properties (fid, username, displayName, pfpUrl)
-      // are expected to be directly on the context object.
-      if (context?.fid) { // Now 'fid' should be recognized
-        setLoadingProfile(true); // Start loading state for profile
-        try {
-          // 1. Attempt to fetch an existing profile from the 'profiles' table
-          const { data: existingProfile, error: fetchError } = await supabaseClient
+    // Use type assertion `as any` to bypass strict type checking for `fid`, `username`, `displayName`, `pfpUrl`
+    // This is a workaround because the installed `@farcaster/frame-sdk` version's type definitions
+    // do not correctly reflect the runtime properties of the `context` object in this environment.
+    const fId = (context as any)?.fid;
+    const userName = (context as any)?.username;
+    const displayName = (context as any)?.displayName;
+    const pfpUrl = (context as any)?.pfpUrl;
+
+    if (fId) { // Only run this logic if a Farcaster user is logged in (has an FID)
+      setLoadingProfile(true); // Start loading state for profile
+      try {
+        // 1. Attempt to fetch an existing profile from the 'profiles' table
+        const { data: existingProfile, error: fetchError } = await supabaseClient
+          .from('profiles')
+          .select('*') // Select all columns
+          .eq('fid', fId) // Use fId here
+          .single(); // Expecting zero or one row
+
+        if (fetchError && fetchError.code === 'PGRST116') { // 'PGRST116' is Supabase's error code for "no rows found"
+          // 2. If no profile exists, create a new one
+          console.log("No existing profile found, creating new Farlance profile...");
+          const { data: newProfile, error: createError } = await supabaseClient
             .from('profiles')
-            .select('*') // Select all columns
-            .eq('fid', context.fid) // Where FID matches current Farcaster user's FID
-            .single(); // Expecting zero or one row
+            .insert({
+              fid: fId,
+              username: userName || null, // Pull from Farcaster context
+              display_name: displayName || null, // Pull from Farcaster context
+              // If you added a 'pfp_url' column to your Supabase profiles table, you could add it here:
+              // pfp_url: pfpUrl || null,
+            })
+            .select() // Select the newly created row to return its data
+            .single(); // Expecting one new row back
 
-          if (fetchError && fetchError.code === 'PGRST116') { // 'PGRST116' is Supabase's error code for "no rows found"
-            // 2. If no profile exists, create a new one
-            console.log("No existing profile found, creating new Farlance profile...");
-            const { data: newProfile, error: createError } = await supabaseClient
-              .from('profiles')
-              .insert({
-                fid: context.fid,
-                username: context.username || null, // Pull from Farcaster context
-                display_name: context.displayName || null, // Pull from Farcaster context
-                // If you added a 'pfp_url' column to your Supabase profiles table, you could add it here:
-                // pfp_url: context.pfpUrl || null,
-              })
-              .select() // Select the newly created row to return its data
-              .single(); // Expecting one new row back
-
-            if (createError) {
-              console.error("Error creating profile:", createError);
-              // TODO: Implement user-facing error message here
-            } else if (newProfile) {
-              console.log("New Farlance profile created:", newProfile);
-              setUserProfile(newProfile); // Set the newly created profile to state
-            }
-          } else if (fetchError) {
-            // Handle other types of errors during fetching (e.g., network issues, database errors)
-            console.error("Error fetching profile:", fetchError);
-            // TODO: Implement user-facing error message
-          } else if (existingProfile) {
-            // If an existing profile was found, set it to state
-            console.log("Existing Farlance profile fetched:", existingProfile);
-            setUserProfile(existingProfile);
+          if (createError) {
+            console.error("Error creating profile:", createError);
+            // TODO: Implement user-facing error message here
+          } else if (newProfile) {
+            console.log("New Farlance profile created:", newProfile);
+            setUserProfile(newProfile); // Set the newly created profile to state
           }
-        } catch (err) {
-          // Catch any unhandled synchronous errors or rejections from promises
-          console.error("Unhandled error in getOrCreateProfile:", err);
-        } finally {
-          setLoadingProfile(false); // Always set loading to false when done
+        } else if (fetchError) {
+          // Handle other types of errors during fetching (e.g., network issues, database errors)
+          console.error("Error fetching profile:", fetchError);
+          // TODO: Implement user-facing error message
+        } else if (existingProfile) {
+          console.log("Existing Farlance profile fetched:", existingProfile);
+          setUserProfile(existingProfile);
         }
-      } else {
-        // If no Farcaster user is logged in (context.fid is null/undefined)
-        setLoadingProfile(false); // Stop loading, so the "Connect Wallet" prompt can be displayed
-        setUserProfile(null); // Clear any old profile data from state
+      } catch (err) {
+        console.error("Unhandled error in getOrCreateProfile:", err);
+      } finally {
+        setLoadingProfile(false); // Always set loading to false when done
       }
+    } else {
+      // If no Farcaster user is logged in (fId is null/undefined)
+      setLoadingProfile(false); // Stop loading, so the "Connect Wallet" prompt can be displayed
+      setUserProfile(null); // Clear any old profile data from state
     }
+  }
+  // Dependency array: includes derived values and supabaseClient.
+  // We explicitly include fId, userName, displayName, pfpUrl here.
+}, [fId, userName, displayName, pfpUrl, supabaseClient]); // Updated Dependency array for useEffect
 
-    getOrCreateProfile(); // Call the function when the component mounts or context.fid changes
-  }, [context?.fid, context?.username, context?.displayName, context?.pfpUrl, supabaseClient]); // Updated Dependency array for useEffect
 
-  // Main UI Render for the App component
-  return (
-    <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
-      <div className="w-full max-w-md mx-auto px-4 py-3">
-        <header className="flex justify-between items-center mb-3 h-11">
-          {/* Farcaster/Wallet Identity Display (from original template, for user's connected wallet) */}
-          <div>
-            <div className="flex items-center space-x-2">
-              <Wallet className="z-10">
-                <ConnectWallet>
-                  <Name className="text-inherit" />
-                </ConnectWallet>
-                <WalletDropdown>
-                  <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                    <Avatar />
-                    <Name />
-                    <Address />
-                    <EthBalance />
-                  </Identity>
-                  <WalletDropdownDisconnect />
-                </WalletDropdown>
-              </Wallet>
-            </div>
+// Main UI Render for the App component
+return (
+  <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
+    <div className="w-full max-w-md mx-auto px-4 py-3">
+      <header className="flex justify-between items-center mb-3 h-11">
+        {/* Farcaster/Wallet Identity Display (from original template, for user's connected wallet) */}
+        <div>
+          <div className="flex items-center space-x-2">
+            <Wallet className="z-10">
+              <ConnectWallet>
+                <Name className="text-inherit" />
+              </ConnectWallet>
+              <WalletDropdown>
+                <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
+                  <Avatar />
+                  <Name />
+                  <Address />
+                  <EthBalance />
+                </Identity>
+                <WalletDropdownDisconnect />
+              </WalletDropdown>
+            </Wallet>
           </div>
-          {/* "Save Frame" Button (Farcaster client integration) */}
-          <div>{saveFrameButton}</div>
-        </header>
+        </div>
+        {/* "Save Frame" Button (Farcaster client integration) */}
+        <div>{saveFrameButton}</div>
+      </header>
 
-        <main className="flex-1">
-          {loadingProfile ? (
-            // Display loading state while profile data is being processed
-            <Card title="Loading Farlance Profile...">
-              <p className="text-[var(--app-foreground-muted)]">Please wait while we fetch or create your profile.</p>
-            </Card>
-          ) : !context?.fid ? ( // Check context.fid here for displaying initial welcome/login message
-            // Display a welcome message and prompt to connect if no Farcaster user is logged in
-            <Card title="Welcome to Farlance">
-              <p className="text-[var(--app-foreground-muted)] mb-4">
-                Please connect your Farcaster wallet to get started.
-              </p>
-              {/* The MiniKitProvider typically handles the actual "Connect Wallet" button within the Frame UI itself */}
-            </Card>
-          ) : userProfile ? (
-            // Display the user's Farlance profile if successfully loaded or created
-            <Card title="Your Farlance Profile">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  {context.pfpUrl && ( // Display Farcaster Profile Picture if available from the context
-                    <Image
-                      src={context.pfpUrl} // Access pfpUrl directly from context
-                      alt="Farcaster Profile Picture"
-                      width={64}
-                      height={64}
-                      className="rounded-full"
-                    />
-                  )}
-                  <div>
-                    {/* Display Farcaster display name or username, fallback to generic */}
-                    <p className="text-xl font-bold">{userProfile.display_name || userProfile.username || 'Unnamed Farcaster'}</p>
-                    <p className="text-[var(--app-foreground-muted)] text-sm">@{userProfile.username || 'N/A'}</p>
-                    <p className="text-[var(--app-foreground-muted)] text-sm">FID: {userProfile.fid}</p>
-                  </div>
-                </div>
-                {/* Display custom bio or placeholder */}
-                <p className="text-[var(--app-foreground-muted)]">
-                  {userProfile.bio || 'No custom bio provided yet. Add it in Edit Profile.'}
-                </p>
-                {/* Display contact info if available */}
-                {userProfile.contact_info && (
-                  <p className="text-[var(--app-foreground-muted)]">
-                    Contact: {userProfile.contact_info}
-                  </p>
+      <main className="flex-1">
+        {loadingProfile ? (
+          // Display loading state while profile data is being processed
+          <Card title="Loading Farlance Profile...">
+            <p className="text-[var(--app-foreground-muted)]">Please wait while we fetch or create your profile.</p>
+          </Card>
+        ) : !context?.fid ? ( // Check context.fid here for displaying initial welcome/login message
+          // Display a welcome message and prompt to connect if no Farcaster user is logged in
+          <Card title="Welcome to Farlance">
+            <p className="text-[var(--app-foreground-muted)] mb-4">
+              Please connect your Farcaster wallet to get started.
+            </p>
+            {/* The MiniKitProvider typically handles the actual "Connect Wallet" button within the Frame UI itself */}
+          </Card>
+        ) : userProfile ? (
+          // Display the user's Farlance profile if successfully loaded or created
+          <Card title="Your Farlance Profile">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                {pfpUrl && ( // Display Farcaster Profile Picture using the 'pfpUrl' variable
+                  <Image
+                    src={pfpUrl}
+                    alt="Farcaster Profile Picture"
+                    width={64}
+                    height={64}
+                    className="rounded-full"
+                  />
                 )}
-                {/* Display Supabase internal profile ID */}
-                <p className="text-[var(--app-foreground-muted)] text-xs">
-                  Supabase Profile ID: {userProfile.id}
-                </p>
-
-                {/* Button for future Edit Profile & Skills functionality */}
-                <Button variant="primary" size="md" onClick={() => alert('Edit profile functionality coming soon!')}>
-                  Edit Profile & Skills
-                </Button>
+                <div>
+                  {/* Display Farcaster display name or username, fallback to generic */}
+                  <p className="text-xl font-bold">{userProfile.display_name || userProfile.username || 'Unnamed Farcaster'}</p>
+                  <p className="text-[var(--app-foreground-muted)] text-sm">@{userProfile.username || 'N/A'}</p>
+                  <p className="text-[var(--app-foreground-muted)] text-sm">FID: {userProfile.fid}</p>
+                </div>
               </div>
-            </Card>
-          ) : (
-            // Display a generic error message if profile could not be loaded/created
-            <Card title="Error">
-              <p className="text-red-500">Failed to load or create your Farlance profile. Please try refreshing or contact support.</p>
-            </Card>
-          )}
-        </main>
+              {/* Display custom bio or placeholder */}
+              <p className="text-[var(--app-foreground-muted)]">
+                {userProfile.bio || 'No custom bio provided yet. Add it in Edit Profile.'}
+              </p>
+              {/* Display contact info if available */}
+              {userProfile.contact_info && (
+                <p className="text-[var(--app-foreground-muted)]">
+                  Contact: {userProfile.contact_info}
+                </p>
+              )}
+              {/* Display Supabase internal profile ID */}
+              <p className="text-[var(--app-foreground-muted)] text-xs">
+                Supabase Profile ID: {userProfile.id}
+              </p>
 
-        <footer className="mt-2 pt-4 flex justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-[var(--ock-text-foreground-muted)] text-xs"
-            onClick={() => openUrl("https://base.org/builders/minikit")}
-          >
-            Built on Base with MiniKit
-          </Button>
-        </footer>
-      </div> {/* Closing div for w-full max-w-md mx-auto px-4 py-3 */}
-    </div> // Closing div for flex flex-col min-h-screen ...
-  );
-}
+              {/* Button for future Edit Profile & Skills functionality */}
+              <Button variant="primary" size="md" onClick={() => alert('Edit profile functionality coming soon!')}>
+                Edit Profile & Skills
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          // Display a generic error message if profile could not be loaded/created
+          <Card title="Error">
+            <p className="text-red-500">Failed to load or create your Farlance profile. Please try refreshing or contact support.</p>
+          </Card>
+        )}
+      </main>
+
+      <footer className="mt-2 pt-4 flex justify-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-[var(--ock-text-foreground-muted)] text-xs"
+          onClick={() => openUrl("https://base.org/builders/minikit")}
+        >
+          Built on Base with MiniKit
+        </Button>
+      </footer>
+    </div> {/* Closing div for w-full max-w-md mx-auto px-4 py-3 */}
+  </div> {/* Closing div for flex flex-col min-h-screen ... */}
+);
