@@ -1,12 +1,6 @@
 // app/page.tsx
 "use client"; // This directive is necessary for client-side hooks and components
 
-// REMOVE OnchainKit/MiniKit specific imports
-// import { useMiniKit, useAddFrame, useOpenUrl } from "@coinbase/onchainkit/minikit";
-// import { Name, Identity, Address, Avatar, EthBalance } from "@coinbase/onchainkit/identity";
-// import { ConnectWallet, Wallet, WalletDropdown, WalletDropdownDisconnect } from "@coinbase/onchainkit/wallet";
-
-// NEW: Import Neynar SIWN components and hooks
 import { NeynarAuthButton, useNeynarContext } from "@neynar/react";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
@@ -19,36 +13,41 @@ type Profile = {
   id: string; // UUID from Supabase
   fid: number; // Farcaster ID (bigint in DB, number in JS)
   username?: string | null;
-  display_name?: string | null;
+  display_name?: string | null; // Corrected to display_name
   bio?: string | null;
   contact_info?: string | null;
   created_at: string; // TIMESTAMP WITH TIME ZONE
   // If you added pfp_url to your Supabase profiles table for storage, you could add it here:
-  // pfp_url?: string | null;
+  // pfp_url?: string | null; // Corrected to pfp_url
 };
 
 export default function App() {
-  // Replace useMiniKit with useNeynarContext
-  const { user, isAuthenticated } = useNeynarContext(); // user contains fid, username, displayName, pfpUrl if authenticated
+  const { user, isAuthenticated } = useNeynarContext(); // Neynar user context
+
+  const [frameAdded, setFrameAdded] = useState(false); // State for "Save Frame" button animation (though not used currently)
+  // Removed useAddFrame and useOpenUrl as they were part of OnchainKit's minikit (not NeynarAuthButton context)
+  // If you plan to add direct frame actions like `addFrame` or `openUrl` via Neynar later,
+  // you'd need to explicitly use Neynar's Frame API or SDK for those.
 
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
-  // The Supabase client instance is now imported directly
   const supabaseClient = supabase;
 
-  // The frameReady, addFrame, openUrl hooks and related state/memos/callbacks are removed as they were MiniKit specific.
-  // The NeynarAuthButton handles all the authentication.
-  // The "Save Frame" button functionality is also removed for simplicity with Neynar SIWN.
+  // The frameReady, setFrameReady, handleAddFrame, saveFrameButton, addFrame, openUrl
+  // from MiniKit are no longer used here as NeynarAuthButton replaces the auth flow.
+  // Keeping these as comments for context.
+  // useEffect(() => { if (!isFrameReady) { setFrameReady(); } }, [setFrameReady, isFrameReady]);
+  // const handleAddFrame = useCallback(async () => { const frameAddedResult = await addFrame(); setFrameAdded(Boolean(frameAddedResult)); }, [addFrame]);
+  // const saveFrameButton = useMemo(() => { /* ... */ }, [context, frameAdded, handleAddFrame]);
 
   // Define the async function for profile management using useCallback to memoize it
   const getOrCreateProfile = useCallback(async () => {
-    // Access properties directly from `user` object from useNeynarContext.
-    // No `(as any)` needed here, as Neynar's `user` object is typed to contain these.
+    // Access properties using correct snake_case from `user` object
     const fId = user?.fid;
     const userName = user?.username;
-    const displayName = user?.displayName;
-    const pfpUrl = user?.pfpUrl;
+    const display_name = user?.display_name; // Corrected from displayName
+    const pfp_url = user?.pfp_url; // Corrected from pfpUrl
 
     if (fId && supabaseClient) { // CRITICAL: Only proceed if fId AND supabaseClient are valid
       setLoadingProfile(true);
@@ -68,16 +67,15 @@ export default function App() {
             .insert({
               fid: fId,
               username: userName || null,
-              display_name: displayName || null,
+              display_name: display_name || null, // Use corrected variable
               // If you added a 'pfp_url' column to your Supabase profiles table, you could add it here:
-              // pfp_url: pfpUrl || null,
+              // pfp_url: pfp_url || null, // Use corrected variable
             })
             .select()
             .single();
 
           if (createError) {
             console.error("Error creating profile:", createError);
-            // TODO: Implement user-facing error message here
           } else if (newProfile) {
             console.log("New Farlance profile created:", newProfile);
             setUserProfile(newProfile);
@@ -93,14 +91,14 @@ export default function App() {
       } finally {
         setLoadingProfile(false);
       }
-    } else if (!isAuthenticated) { // Use isAuthenticated from useNeynarContext
+    } else if (!isAuthenticated) { // If Farcaster user is NOT authenticated
         setLoadingProfile(false);
-        setUserProfile(null); // Not authenticated, clear profile
-    } else { // This branch handles the case where isAuthenticated is true but user.fid might still be null (e.g., initial state after auth) or supabaseClient is null (server prerender)
+        setUserProfile(null);
+    } else { // This branch handles: authenticated but user.fid might be null initially, or supabaseClient is null (server prerender)
         setLoadingProfile(true); // Keep loading, waiting for client-side hydration or user context update
         setUserProfile(null);
     }
-  }, [user?.fid, user?.username, user?.displayName, user?.pfpUrl, isAuthenticated, supabaseClient]); // Dependency array: uses properties from `user` and `isAuthenticated`
+  }, [user?.fid, user?.username, user?.display_name, user?.pfp_url, isAuthenticated, supabaseClient]); // Updated Dependency array for useEffect
 
   // Call the async function inside useEffect.
   useEffect(() => {
@@ -112,12 +110,11 @@ export default function App() {
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
       <div className="w-full max-w-md mx-auto px-4 py-3">
         <header className="flex justify-between items-center mb-3 h-11">
-          {/* Replace the old Wallet/ConnectWallet UI with NeynarAuthButton */}
+          {/* NeynarAuthButton handles the Farcaster login/logout UI */}
           <div className="flex items-center space-x-2">
-            <NeynarAuthButton /> {/* This button handles the Farcaster login */}
+            <NeynarAuthButton />
           </div>
-          {/* Removed saveFrameButton as it was MiniKit specific */}
-          {/* <div>{saveFrameButton}</div> */}
+          {/* Removed MiniKit specific "Save Frame" button and wallet display */}
         </header>
 
         <main className="flex-1">
@@ -125,20 +122,19 @@ export default function App() {
             <Card title="Loading Farlance Profile...">
               <p className="text-[var(--app-foreground-muted)]">Please wait while we fetch or create your profile.</p>
             </Card>
-          ) : !isAuthenticated ? ( // Check isAuthenticated from useNeynarContext
+          ) : !isAuthenticated ? ( // Check isAuthenticated to display login prompt
             <Card title="Welcome to Farlance">
               <p className="text-[var(--app-foreground-muted)] mb-4">
                 Please connect your Farcaster wallet to get started.
               </p>
-              {/* NeynarAuthButton already provides the login UI */}
             </Card>
           ) : userProfile ? (
             <Card title="Your Farlance Profile">
               <div className="space-y-4">
                 <div className="flex items-center space-x-4">
-                  {user?.pfpUrl && ( // Display Farcaster Profile Picture from `user` object
+                  {user?.pfp_url && ( // Display Farcaster Profile Picture from `user.pfp_url`
                     <Image
-                      src={user.pfpUrl}
+                      src={user.pfp_url}
                       alt="Farcaster Profile Picture"
                       width={64}
                       height={64}
@@ -175,19 +171,13 @@ export default function App() {
           )}
         </main>
 
+        {/* Removed the "Built on Base with MiniKit" footer button */}
         <footer className="mt-2 pt-4 flex justify-center">
-          {/* Removed OnchainKit specific "Built on Base with MiniKit" button */}
-          {/* Re-add a similar button with generic link if desired */}
-          {/* <Button
-            variant="ghost"
-            size="sm"
-            className="text-[var(--ock-text-foreground-muted)] text-xs"
-            onClick={() => openUrl("https://base.org/builders/minikit")}
-          >
-            Built on Base with MiniKit
-          </Button> */}
+           <span className="text-[var(--app-foreground-muted)] text-xs">
+             Farlance: Built for Farcaster
+           </span>
         </footer>
       </div> {/* Closing div for w-full max-w-md mx-auto px-4 py-3 */}
-    </div> // Closing div for flex flex-col min-h-screen ...
+    </div> {/* Closing div for flex flex-col min-h-screen ... */}
   );
 }
