@@ -1,12 +1,17 @@
 // middleware.ts
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-// Removed: import { RequestCookie } from 'next/dist/server/web/spec-extension/cookies';
-// Removed: import { type CookieSerializeOptions as SerializeOptions } from 'next/dist/compiled/@edge-runtime/cookies';
+// No need to import `cookies` directly from 'next/headers' here
+// as createServerClient handles cookie access via the request/response objects.
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next();
+  // Create a clone of the response so we can modify its cookies.
+  // This is crucial for Supabase session management in Next.js middleware.
+  const response = NextResponse.next({
+    request: {
+      headers: request.headers, // Maintain request headers for next handler
+    },
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,30 +19,31 @@ export async function middleware(request: NextRequest) {
     {
       cookies: {
         getAll() {
-          return request.cookies.getAll();
+          return request.cookies.getAll(); // Read cookies from the incoming request
         },
+        // This `setAll` method is a callback provided by Supabase's `createServerClient`.
+        // It tells *our* middleware how to apply cookies to the response.
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              // Cast `options` to `any` because its specific type definition
-              // (CookieSerializeOptions) is causing import/compatibility issues.
-              // This tells TypeScript to accept that `options` is valid here.
-              request.cookies.set(name, value, options as any); // <--- CHANGE IS HERE
+              // The crucial change: Use `response.cookies.set` to apply cookies.
+              // This method correctly accepts name, value, and options object.
+              response.cookies.set(name, value, options as any); // Cast options to any to bypass volatile type issues
             });
           } catch (e) {
-            // The `cookies()` may not be readable yet in a Server Action.
-            // This error is caught and handled by the `short` or `long`
-            // callbacks in `middleware.ts`
-            console.warn('Failed to set cookie in middleware:', e);
+            // Catch errors if cookies cannot be set (e.g., during Server Actions before response is ready)
+            console.warn('Failed to set cookie in middleware response:', e);
           }
         },
       },
     }
   );
 
-  // Refresh session if expired
+  // Refresh session. This call will internally trigger the `setAll` callback above
+  // if Supabase needs to set new session cookies.
   await supabase.auth.getSession();
 
+  // Return the modified response object.
   return response;
 }
 
