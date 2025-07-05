@@ -207,4 +207,49 @@ export default function App() {
                     {/* Display Farcaster display name or username, fallback to generic */}
                     <p className="text-xl font-bold">{userProfile.display_name || userProfile.username || 'Unnamed Farcaster'}</p>
                     <p className="text-[var(--app-foreground-muted)] text-sm">@{userProfile.username || 'N/A'}</p>
-                    <p className="
+                    <p className="text-[var(--app-foreground-muted)] text-sm">FID: {userProfile.fid}</p>
+                  </div>
+                </div>
+                {/* Display custom bio or placeholder */}
+                <p className="text-[var(--app-foreground-muted)]">
+                  {userProfile.bio || 'No custom bio provided yet. Add it in Edit Profile.'}
+                </p>
+                {/* Display contact info if available */}
+                {userProfile.contact_info && (
+                  <p className="text-[var(--app-foreground-muted)]">
+                    Contact: {userProfile.contact_info}
+                  </p>
+                )}
+                {/* Display Supabase internal profile ID */}
+                <p className="text-[var(--app-foreground-muted)] text-xs">
+                  Supabase Profile ID: {userProfile.id}
+                </p>
+
+                {/* Button for future Edit Profile & Skills functionality */}
+                <Button variant="primary" size="md" onClick={() => alert('Edit profile functionality coming soon!')}>
+                  Edit Profile & Skills
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            // Display a generic error message if profile could not be loaded/created
+            <Card title="Error">
+              <p className="text-red-500">Failed to load or create your Farlance profile. Please try refreshing or contact support.</p>
+            </Card>
+          )}
+        </main>
+
+        <footer className="mt-2 pt-4 flex justify-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-[var(--ock-text-foreground-muted)] text-xs"
+            onClick={() => openUrl("https://base.org/builders/minikit")}
+          >
+            Built on Base with MiniKit
+          </Button>
+        </footer>
+      </div> {/* Closing div for w-full max-w-md mx-auto px-4 py-3 */}
+    </div> // Closing div for flex flex-col min-h-screen ...
+  );
+}
