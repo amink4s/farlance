@@ -207,18 +207,4 @@ export default function App() {
                     {/* Display Farcaster display name or username, fallback to generic */}
                     <p className="text-xl font-bold">{userProfile.display_name || userProfile.username || 'Unnamed Farcaster'}</p>
                     <p className="text-[var(--app-foreground-muted)] text-sm">@{userProfile.username || 'N/A'}</p>
-                    <p className="text-[var(--app-foreground-muted)] text-sm">FID: {userProfile.fid}</p>
-                  </div>
-                </div>
-                {/* Display custom bio or placeholder */}
-                <p className="text-[var(--app-foreground-muted)]">
-                  {userProfile.bio || 'No custom bio provided yet. Add it in Edit Profile.'}
-                </p>
-                {/* Display contact info if available */}
-                {userProfile.contact_info && (
-                  <p className="text-[var(--app-foreground-muted)]">
-                    Contact: {userProfile.contact_info}
-                  </p>
-                )}
-                {/* Display Supabase internal profile ID */}
-                <p className="text-[var(--app-
+                    <p className="
