@@ -44,6 +44,7 @@ export default function App() {
   const [loadingProfile, setLoadingProfile] = useState(true); // Manages loading state for profile fetch/create
 
   // The Supabase client instance is now imported directly
+  // It will be `null` during server-side prerendering due to defensive initialization in lib/supabase/client.ts
   const supabaseClient = supabase;
 
   // Effect to tell MiniKit that the frame is ready to be displayed
@@ -98,7 +99,7 @@ export default function App() {
     const displayName = (context as any)?.displayName;
     const pfpUrl = (context as any)?.pfpUrl;
 
-    if (fId) { // Only run this logic if a Farcaster user is logged in (has an FID)
+    if (fId && supabaseClient) { // CRITICAL: Only proceed if fId AND supabaseClient are valid (not null from server-side prerender)
       setLoadingProfile(true); // Start loading state for profile
       try {
         // 1. Attempt to fetch an existing profile from the 'profiles' table
@@ -143,10 +144,12 @@ export default function App() {
       } finally {
         setLoadingProfile(false); // Always set loading to false when done
       }
-    } else {
-      // If no Farcaster user is logged in (fId is null/undefined)
-      setLoadingProfile(false); // Stop loading, so the "Connect Wallet" prompt can be displayed
-      setUserProfile(null); // Clear any old profile data from state
+    } else if (!fId) { // If Farcaster user is NOT logged in (fId is null/undefined)
+        setLoadingProfile(false); // Stop loading, display login prompt
+        setUserProfile(null); // Clear profile state
+    } else { // This branch handles the case where fId is present but supabaseClient is null (due to server-side prerender)
+        setLoadingProfile(true); // Keep loading, waiting for client-side hydration where supabaseClient will be available
+        setUserProfile(null); // No profile yet
     }
   }, [context, supabaseClient]); // Dependencies for useCallback: context and supabaseClient. All derived values (fId, userName, etc.) are from context.
 
