@@ -1,7 +1,4 @@
-import {
-  setUserNotificationDetails,
-  deleteUserNotificationDetails,
-} from "@/lib/notification";
+import { setUserNotificationDetails, deleteUserNotificationDetails, } from "@/lib/notification.ts";
 import { sendFrameNotification } from "@/lib/notification-client.ts";
 import { http } from "viem";
 import { createPublicClient } from "viem";
