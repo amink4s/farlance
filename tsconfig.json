@@ -1,5 +1,3 @@
-// tsconfig.json
-
 {
   "compilerOptions": {
     "lib": [
@@ -12,10 +10,8 @@
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true, // PROFESSIONAL COMMENT: ADDED THIS LINE to resolve TS1471 errors.
     "module": "esnext",
     "moduleResolution": "node16",
-    "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
@@ -29,14 +25,15 @@
         "./*"
       ]
     },
-    "target": "ES2017"
+    "target": "ES2017",
+    "resolveJsonModule": true
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-, "app/page.jsx", "app/profile/[fid]/page.jsx"  ],
+  ],
   "exclude": [
     "node_modules"
   ]

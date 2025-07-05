@@ -1,6 +1,9 @@
 "use client";
 
 import { type ReactNode } from "react";
+// import { base } from "wagmi/chains/index.js"; // or just "wagmi/chains.js" if that doesn't work. Start with index.js
+// import { MiniKitProvider } from "@coinbase/onchainkit/minikit/index.js"; // Adding /index.js
+
 import { base } from "wagmi/chains";
 import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
 
