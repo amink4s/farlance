@@ -178,6 +178,6 @@ export default function App() {
            </span>
         </footer>
       </div> {/* Closing div for w-full max-w-md mx-auto px-4 py-3 */}
-    </div> {/* Closing div for flex flex-col min-h-screen ... */}
+    </div> //* Closing div for flex flex-col min-h-screen ... */
   );
 }
