@@ -24,7 +24,8 @@
     "react-dom": "^19.1.0",
     "swr": "^2.3.4",
     "viem": "^2.27.2",
-    "wagmi": "^2.14.11"
+    "wagmi": "^2.14.11",
+    "@neynar/nodejs-sdk": "^2.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",
