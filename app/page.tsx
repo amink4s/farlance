@@ -30,6 +30,8 @@ type Profile = {
   bio?: string | null;
   contact_info?: string | null;
   created_at: string; // TIMESTAMP WITH TIME ZONE
+  // If you added pfp_url to your Supabase profiles table for storage:
+  // pfp_url?: string | null;
 };
 
 export default function App() {
@@ -83,28 +85,23 @@ export default function App() {
         </div>
       );
     }
-    return null; // Don't render if already added and not in animation animation state
+    return null; // Don't render if already added and not in animation state
   }, [context, frameAdded, handleAddFrame]);
 
   // Effect to get or create user profile in Supabase
   useEffect(() => {
     async function getOrCreateProfile() {
-      // Use type assertion `as any` to access properties that might not be strictly typed
-      // but are present at runtime from the `context` object provided by MiniKit.
-      // This is a workaround for potential type definition mismatches.
-      const fId = (context as any)?.fid;
-      const userName = (context as any)?.username;
-      const displayName = (context as any)?.displayName;
-      const pfpUrl = (context as any)?.pfpUrl;
-
-      if (fId) { // Only run this logic if a Farcaster user is logged in (has an FID)
+      // Use optional chaining for context properties.
+      // With frame-sdk ^0.0.64, these properties (fid, username, displayName, pfpUrl)
+      // are expected to be directly on the context object.
+      if (context?.fid) { // Now 'fid' should be recognized
         setLoadingProfile(true); // Start loading state for profile
         try {
           // 1. Attempt to fetch an existing profile from the 'profiles' table
           const { data: existingProfile, error: fetchError } = await supabaseClient
             .from('profiles')
             .select('*') // Select all columns
-            .eq('fid', fId) // Where FID matches current Farcaster user's FID
+            .eq('fid', context.fid) // Where FID matches current Farcaster user's FID
             .single(); // Expecting zero or one row
 
           if (fetchError && fetchError.code === 'PGRST116') { // 'PGRST116' is Supabase's error code for "no rows found"
@@ -113,11 +110,11 @@ export default function App() {
             const { data: newProfile, error: createError } = await supabaseClient
               .from('profiles')
               .insert({
-                fid: fId,
-                username: userName || null, // Pull from Farcaster context
-                display_name: displayName || null, // Pull from Farcaster context
+                fid: context.fid,
+                username: context.username || null, // Pull from Farcaster context
+                display_name: context.displayName || null, // Pull from Farcaster context
                 // If you added a 'pfp_url' column to your Supabase profiles table, you could add it here:
-                // pfp_url: pfpUrl || null,
+                // pfp_url: context.pfpUrl || null,
               })
               .select() // Select the newly created row to return its data
               .single(); // Expecting one new row back
@@ -145,14 +142,14 @@ export default function App() {
           setLoadingProfile(false); // Always set loading to false when done
         }
       } else {
-        // If no Farcaster user is logged in (fId is null/undefined)
+        // If no Farcaster user is logged in (context.fid is null/undefined)
         setLoadingProfile(false); // Stop loading, so the "Connect Wallet" prompt can be displayed
         setUserProfile(null); // Clear any old profile data from state
       }
     }
 
-    getOrCreateProfile(); // Call the function when the component mounts or fId changes
-  }, [fId, userName, displayName, pfpUrl, supabaseClient]); // Dependency array: includes derived values and supabaseClient
+    getOrCreateProfile(); // Call the function when the component mounts or context.fid changes
+  }, [context?.fid, context?.username, context?.displayName, context?.pfpUrl, supabaseClient]); // Updated Dependency array for useEffect
 
   // Main UI Render for the App component
   return (
@@ -201,9 +198,9 @@ export default function App() {
             <Card title="Your Farlance Profile">
               <div className="space-y-4">
                 <div className="flex items-center space-x-4">
-                  {(context as any)?.pfpUrl && ( // Display Farcaster Profile Picture if available from the context
+                  {context.pfpUrl && ( // Display Farcaster Profile Picture if available from the context
                     <Image
-                      src={(context as any).pfpUrl}
+                      src={context.pfpUrl} // Access pfpUrl directly from context
                       alt="Farcaster Profile Picture"
                       width={64}
                       height={64}
