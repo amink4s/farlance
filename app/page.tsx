@@ -19,7 +19,7 @@ import {
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button, Icon, Card } from "./components/ui/shared"; // Your shared UI components
 import { supabase } from '@/lib/supabase/client'; // Import the Supabase client INSTANCE
-import Image from 'next/image';
+import Image from 'next/image'; // Used for displaying Farcaster PFP
 
 // Define a type for your profile data based on your Supabase table schema
 type Profile = {
@@ -42,7 +42,6 @@ export default function App() {
   const [loadingProfile, setLoadingProfile] = useState(true); // Manages loading state for profile fetch/create
 
   // The Supabase client instance is now imported directly
-  // We'll use a local variable `supabaseClient` for clarity
   const supabaseClient = supabase;
 
   // Effect to tell MiniKit that the frame is ready to be displayed
@@ -84,20 +83,28 @@ export default function App() {
         </div>
       );
     }
-    return null; // Don't render if already added and not in animation state
+    return null; // Don't render if already added and not in animation animation state
   }, [context, frameAdded, handleAddFrame]);
 
   // Effect to get or create user profile in Supabase
   useEffect(() => {
     async function getOrCreateProfile() {
-      if (context?.fid) { // Only run this logic if a Farcaster user is logged in (has an FID in context)
+      // Use type assertion `as any` to access properties that might not be strictly typed
+      // but are present at runtime from the `context` object provided by MiniKit.
+      // This is a workaround for potential type definition mismatches.
+      const fId = (context as any)?.fid;
+      const userName = (context as any)?.username;
+      const displayName = (context as any)?.displayName;
+      const pfpUrl = (context as any)?.pfpUrl;
+
+      if (fId) { // Only run this logic if a Farcaster user is logged in (has an FID)
         setLoadingProfile(true); // Start loading state for profile
         try {
           // 1. Attempt to fetch an existing profile from the 'profiles' table
           const { data: existingProfile, error: fetchError } = await supabaseClient
             .from('profiles')
             .select('*') // Select all columns
-            .eq('fid', context.fid) // Where FID matches current Farcaster user's FID
+            .eq('fid', fId) // Where FID matches current Farcaster user's FID
             .single(); // Expecting zero or one row
 
           if (fetchError && fetchError.code === 'PGRST116') { // 'PGRST116' is Supabase's error code for "no rows found"
@@ -106,11 +113,11 @@ export default function App() {
             const { data: newProfile, error: createError } = await supabaseClient
               .from('profiles')
               .insert({
-                fid: context.fid,
-                username: context.username || null, // Pull from Farcaster context
-                display_name: context.displayName || null, // Pull from Farcaster context
-                // You can add more Farcaster context fields here if they map to your profile table
-                // For example, if you added a 'pfp_url' column: pfp_url: context.pfpUrl || null,
+                fid: fId,
+                username: userName || null, // Pull from Farcaster context
+                display_name: displayName || null, // Pull from Farcaster context
+                // If you added a 'pfp_url' column to your Supabase profiles table, you could add it here:
+                // pfp_url: pfpUrl || null,
               })
               .select() // Select the newly created row to return its data
               .single(); // Expecting one new row back
@@ -138,14 +145,14 @@ export default function App() {
           setLoadingProfile(false); // Always set loading to false when done
         }
       } else {
-        // If no Farcaster user is logged in (context.fid is null/undefined)
+        // If no Farcaster user is logged in (fId is null/undefined)
         setLoadingProfile(false); // Stop loading, so the "Connect Wallet" prompt can be displayed
         setUserProfile(null); // Clear any old profile data from state
       }
     }
 
-    getOrCreateProfile(); // Call the function when the component mounts or context.fid changes
-  }, [context?.fid, supabaseClient]); // Dependency array: re-run this effect when Farcaster FID changes or supabaseClient changes
+    getOrCreateProfile(); // Call the function when the component mounts or fId changes
+  }, [fId, userName, displayName, pfpUrl, supabaseClient]); // Dependency array: includes derived values and supabaseClient
 
   // Main UI Render for the App component
   return (
@@ -181,7 +188,7 @@ export default function App() {
             <Card title="Loading Farlance Profile...">
               <p className="text-[var(--app-foreground-muted)]">Please wait while we fetch or create your profile.</p>
             </Card>
-          ) : !context?.fid ? (
+          ) : !context?.fid ? ( // Check context.fid here for displaying initial welcome/login message
             // Display a welcome message and prompt to connect if no Farcaster user is logged in
             <Card title="Welcome to Farlance">
               <p className="text-[var(--app-foreground-muted)] mb-4">
@@ -194,9 +201,9 @@ export default function App() {
             <Card title="Your Farlance Profile">
               <div className="space-y-4">
                 <div className="flex items-center space-x-4">
-                  {context.pfpUrl && ( // Display Farcaster Profile Picture if available from the context
+                  {(context as any)?.pfpUrl && ( // Display Farcaster Profile Picture if available from the context
                     <Image
-                      src={context.pfpUrl}
+                      src={(context as any).pfpUrl}
                       alt="Farcaster Profile Picture"
                       width={64}
                       height={64}
