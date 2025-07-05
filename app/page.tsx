@@ -38,7 +38,7 @@ export default function App() {
   // This is crucial for the Mini App to render correctly in Farcaster clients.
   useEffect(() => {
     const signalReady = async () => {
-      if (sdk && !sdk.isReady) { // Check if SDK is loaded and not already ready
+      if (sdk) { // Only check if sdk object itself is loaded
         await sdk.actions.ready(); // Signal ready
         console.log("Farcaster Mini App signaled ready.");
       }
