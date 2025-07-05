@@ -1,7 +1,10 @@
 // app/page.tsx
 "use client"; // This directive is necessary for client-side hooks and components
 
+// NEW: Import Neynar SIWN components and hooks
 import { NeynarAuthButton, useNeynarContext } from "@neynar/react";
+// NEW: Import Farcaster SDK for actions.ready()
+import { sdk } from "@farcaster/frame-sdk";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button, Icon, Card } from "./components/ui/shared"; // Your shared UI components
@@ -24,30 +27,33 @@ type Profile = {
 export default function App() {
   const { user, isAuthenticated } = useNeynarContext(); // Neynar user context
 
-  const [frameAdded, setFrameAdded] = useState(false); // State for "Save Frame" button animation (though not used currently)
-  // Removed useAddFrame and useOpenUrl as they were part of OnchainKit's minikit (not NeynarAuthButton context)
-  // If you plan to add direct frame actions like `addFrame` or `openUrl` via Neynar later,
-  // you'd need to explicitly use Neynar's Frame API or SDK for those.
+  const [frameAdded, setFrameAdded] = useState(false); // State for "Save Frame" button animation (not used currently)
 
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
   const supabaseClient = supabase;
 
-  // The frameReady, setFrameReady, handleAddFrame, saveFrameButton, addFrame, openUrl
-  // from MiniKit are no longer used here as NeynarAuthButton replaces the auth flow.
-  // Keeping these as comments for context.
-  // useEffect(() => { if (!isFrameReady) { setFrameReady(); } }, [setFrameReady, isFrameReady]);
-  // const handleAddFrame = useCallback(async () => { const frameAddedResult = await addFrame(); setFrameAdded(Boolean(frameAddedResult)); }, [addFrame]);
-  // const saveFrameButton = useMemo(() => { /* ... */ }, [context, frameAdded, handleAddFrame]);
+  // Effect to tell Farcaster SDK that the app is ready to be displayed
+  // This is crucial for the Mini App to render correctly in Farcaster clients.
+  useEffect(() => {
+    const signalReady = async () => {
+      if (sdk && !sdk.isReady) { // Check if SDK is loaded and not already ready
+        await sdk.actions.ready(); // Signal ready
+        console.log("Farcaster Mini App signaled ready.");
+      }
+    };
+    signalReady();
+  }, []); // Empty dependency array: run once on mount
+
 
   // Define the async function for profile management using useCallback to memoize it
   const getOrCreateProfile = useCallback(async () => {
     // Access properties using correct snake_case from `user` object
     const fId = user?.fid;
     const userName = user?.username;
-    const display_name = user?.display_name; // Corrected from displayName
-    const pfp_url = user?.pfp_url; // Corrected from pfpUrl
+    const display_name = user?.display_name;
+    const pfp_url = user?.pfp_url;
 
     if (fId && supabaseClient) { // CRITICAL: Only proceed if fId AND supabaseClient are valid
       setLoadingProfile(true);
@@ -67,9 +73,9 @@ export default function App() {
             .insert({
               fid: fId,
               username: userName || null,
-              display_name: display_name || null, // Use corrected variable
+              display_name: display_name || null,
               // If you added a 'pfp_url' column to your Supabase profiles table, you could add it here:
-              // pfp_url: pfp_url || null, // Use corrected variable
+              // pfp_url: pfp_url || null,
             })
             .select()
             .single();
@@ -98,7 +104,7 @@ export default function App() {
         setLoadingProfile(true); // Keep loading, waiting for client-side hydration or user context update
         setUserProfile(null);
     }
-  }, [user?.fid, user?.username, user?.display_name, user?.pfp_url, isAuthenticated, supabaseClient]); // Updated Dependency array for useEffect
+  }, [user?.fid, user?.username, user?.display_name, user?.pfp_url, isAuthenticated, supabaseClient]); // Dependency array
 
   // Call the async function inside useEffect.
   useEffect(() => {
@@ -114,7 +120,6 @@ export default function App() {
           <div className="flex items-center space-x-2">
             <NeynarAuthButton />
           </div>
-          {/* Removed MiniKit specific "Save Frame" button and wallet display */}
         </header>
 
         <main className="flex-1">
@@ -171,13 +176,13 @@ export default function App() {
           )}
         </main>
 
-        {/* Removed the "Built on Base with MiniKit" footer button */}
+        {/* Simple footer message */}
         <footer className="mt-2 pt-4 flex justify-center">
            <span className="text-[var(--app-foreground-muted)] text-xs">
              Farlance: Built for Farcaster
            </span>
         </footer>
       </div> {/* Closing div for w-full max-w-md mx-auto px-4 py-3 */}
-    </div> //* Closing div for flex flex-col min-h-screen ... */
+    </div> {/* Closing div for flex flex-col min-h-screen ... */}
   );
 }
