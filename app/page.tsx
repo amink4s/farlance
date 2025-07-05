@@ -119,6 +119,7 @@ export default function App() {
                       width={64}
                       height={64}
                       className="rounded-full"
+                      unoptimized={true}
                     />
                   )}
                   <div>
