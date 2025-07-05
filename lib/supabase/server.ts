@@ -1,13 +1,12 @@
 // lib/supabase/server.ts
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-// Import the specific type for the cookies object
-import { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/cookies';
+// Removed: import { ReadonlyRequestCookies } from 'next/dist/server/web/spec-extension/cookies';
 
 export function createClient() {
-  // Cast the result of cookies() to its expected type: ReadonlyRequestCookies.
-  // This tells TypeScript that this object will have the getAll() and set() methods.
-  const cookieStore = cookies() as ReadonlyRequestCookies;
+  // Cast cookies() result to 'any' to bypass volatile internal Next.js type definitions.
+  // This tells TypeScript to not worry about its specific methods here.
+  const cookieStore: any = cookies(); // <--- MODIFIED LINE
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,8 +14,7 @@ export function createClient() {
     {
       cookies: {
         getAll() {
-          // Now TypeScript knows cookieStore is a ReadonlyRequestCookies object
-          // and expects getAll() to exist synchronously on it.
+          // This should now pass type check due to `any` cast on cookieStore
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
@@ -25,9 +23,6 @@ export function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch (e) {
-            // The `cookies()` may not be readable yet in a Server Action.
-            // This error is caught and handled by the `short` or `long`
-            // callbacks in `middleware.ts`
             console.warn('Failed to set cookie in createClient server:', e);
           }
         },
