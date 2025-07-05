@@ -40,14 +40,15 @@ async function resolveFarcasterUser(fid: number) {
 }
 
 export async function GET(request: Request) {
-    const authHeader = (await headers()).get('Authorization');
+  // Await the headers() function to get the actual Headers object
+  const authHeader = (await headers()).get('Authorization'); // <--- MODIFIED LINE
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return NextResponse.json({ message: 'Missing token' }, { status: 401 });
   }
 
   const token = authHeader.split(' ')[1];
-  const host = request.headers.get('host'); // Get the host domain (e.g., farlance.vercel.app)
+  const host = request.headers.get('host'); // request.headers is typically synchronous, so no await needed here
 
   if (!host) {
     return NextResponse.json({ message: 'Host header missing' }, { status: 400 });
