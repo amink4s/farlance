@@ -1,19 +1,21 @@
 // app/page.tsx
-"use client";
+"use client"; // This directive is necessary for client-side hooks and components
 
+// NEW: Import Farcaster SDK for quickAuth and actions.ready()
 import { sdk } from "@farcaster/frame-sdk";
-import { useNeynarContext } from "@neynar/react";
-import React, { useEffect, useState, useCallback } from "react";
 
+import { useEffect, useState, useCallback } from "react"; // Removed useMemo as it's not strictly needed here for now
+import { Button, Icon, Card } from "./components/ui/shared"; // Your shared UI components
+import { supabase } from '@/lib/supabase/client'; // Import the Supabase client INSTANCE
+import Image from 'next/image'; // Used for displaying Farcaster PFP
+
+// Import the new layout and view components
 import MainLayout from './components/MainLayout';
 import ProfileView from './components/ProfileView';
 import JobsView from './components/JobsView';
-import JobPostForm from './components/JobPostForm'; // NEW: Import JobPostForm
+import JobPostForm from './components/JobPostForm';
 
-import { supabase } from '@/lib/supabase/client';
-import { Card } from './components/ui/shared'; // Import Card here
-
-// Define types for data from /api/auth and Supabase
+// Define types for data received from /api/auth and your Supabase profile
 type FarcasterUserAuth = {
   fid: number;
   username: string;
@@ -22,8 +24,8 @@ type FarcasterUserAuth = {
 };
 
 type SupabaseProfile = {
-  id: string;
-  fid: number;
+  id: string; // UUID from Supabase
+  fid: number; // Farcaster ID
   username?: string | null;
   display_name?: string | null;
   bio?: string | null;
@@ -37,13 +39,17 @@ type AuthenticatedUserData = {
 };
 
 export default function App() {
+  // `user` from useNeynarContext might not be immediately populated.
+  // We primarily rely on `sdk.quickAuth.fetch` for `authenticatedData`.
+  // Keeping `useNeynarContext` for `isAuthenticated` if needed for overall session.
   const { user, isAuthenticated } = useNeynarContext();
+
   const [authenticatedData, setAuthenticatedData] = useState<AuthenticatedUserData | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   const supabaseClient = supabase;
 
-  const [activeView, setActiveView] = useState<'jobs' | 'profile' | 'post-job'>('jobs'); // NEW: Add 'post-job' view
+  const [activeView, setActiveView] = useState<'jobs' | 'profile' | 'post-job'>('jobs'); // State to manage current view
 
   // Effect to tell Farcaster SDK that the app is ready to be displayed
   useEffect(() => {
@@ -54,26 +60,28 @@ export default function App() {
       }
     };
     signalReady();
-  }, []);
+  }, []); // Run once on mount
 
   // Effect to perform Quick Auth and fetch/create profile
   useEffect(() => {
     async function authenticateAndLoadProfile() {
-      setLoadingAuth(true);
+      setLoadingAuth(true); // Always start loading when attempting auth
       try {
-        if (user?.fid) {
-            const res = await sdk.quickAuth.fetch('/api/auth');
+        // Attempt Quick Auth unconditionally on component mount.
+        // sdk.quickAuth.fetch will handle whether a new token is needed.
+        const res = await sdk.quickAuth.fetch('/api/auth'); // Call our backend auth route
 
-            if (res.ok) {
-              const data: AuthenticatedUserData = await res.json();
-              setAuthenticatedData(data);
-              console.log("Quick Auth successful. User and profile data:", data);
-            } else {
-              console.error("Quick Auth failed:", res.status, await res.text());
-              setAuthenticatedData(null);
-            }
-        } else if (!isAuthenticated) {
-            setAuthenticatedData(null);
+        console.log("Quick Auth Fetch Raw Response:", res); // <--- DEBUG LOG
+        console.log("Quick Auth Fetch res.ok:", res.ok);     // <--- DEBUG LOG
+
+        if (res.ok) {
+          const data: AuthenticatedUserData = await res.json();
+          setAuthenticatedData(data);
+          console.log("Quick Auth successful. User and profile data:", data);
+        } else {
+          console.error("Quick Auth failed:", res.status, await res.text());
+          // If auth fails, ensure we set authenticatedData to null and show non-auth UI
+          setAuthenticatedData(null);
         }
       } catch (error) {
         console.error("Error during Quick Auth or profile fetch:", error);
@@ -83,8 +91,10 @@ export default function App() {
       }
     }
 
+    // Trigger auth process when component mounts
     authenticateAndLoadProfile();
-  }, [user?.fid, isAuthenticated]);
+  }, []); // Empty dependency array: runs once on component mount
+
 
   // Callback for when a job is successfully posted
   const handleJobPosted = useCallback(() => {
@@ -122,10 +132,10 @@ export default function App() {
           authenticatedUser={authenticatedData.user}
           supabaseProfile={authenticatedData.profile}
           onProfileUpdate={(updatedProfile) => setAuthenticatedData(prev => prev ? { ...prev, profile: updatedProfile } : null)}
-          onPostJob={() => setActiveView('post-job')} // NEW: Pass onPostJob callback
+          onPostJob={() => setActiveView('post-job')}
         />
       );
-    } else if (activeView === 'post-job') { // NEW: Render JobPostForm
+    } else if (activeView === 'post-job') { // Render JobPostForm
       contentToRender = (
         <JobPostForm
           posterId={authenticatedData.profile.id}
