@@ -7,8 +7,8 @@ import { Button, Icon } from './ui/shared';
 
 type MainLayoutProps = {
   children: React.ReactNode;
-  activeView: 'jobs' | 'profile' | 'post-job' | 'talent'; // <--- UPDATED TYPE HERE: Added 'talent'
-  setActiveView: (view: 'jobs' | 'profile' | 'post-job' | 'talent') => void; // <--- UPDATED TYPE HERE
+  activeView: 'jobs' | 'profile' | 'post-job' | 'talent';
+  setActiveView: (view: 'jobs' | 'profile' | 'post-job' | 'talent') => void;
   authenticatedUser: { pfp_url?: string; display_name?: string; username?: string } | null;
 };
 
@@ -53,11 +53,11 @@ export default function MainLayout({ children, activeView, setActiveView, authen
                 >
                   Jobs
                 </Button>
-                {/* Find Talent button placeholder */}
+                {/* Find Talent button */}
                 <Button
-                  variant={activeView === 'talent' ? 'primary' : 'ghost'} // Now 'talent' is a valid type
+                  variant={activeView === 'talent' ? 'primary' : 'ghost'}
                   size="sm"
-                  onClick={() => alert('Find Talent functionality coming soon!')}
+                  onClick={() => setActiveView('talent')} // <--- CHANGED HERE
                 >
                   Find Talent
                 </Button>
