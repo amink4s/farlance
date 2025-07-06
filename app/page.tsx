@@ -61,21 +61,20 @@ export default function App() {
   // Effect to perform Quick Auth and fetch/create profile
   useEffect(() => {
     async function authenticateAndLoadProfile() {
-      setLoadingAuth(true);
+      setLoadingAuth(true); // Always start loading when attempting auth
       try {
-        if (user?.fid) { // Use user.fid as a primary check for Farcaster presence
-            const res = await sdk.quickAuth.fetch('/api/auth');
-
-            if (res.ok) {
-              const data: AuthenticatedUserData = await res.json();
-              setAuthenticatedData(data);
-              console.log("Quick Auth successful. User and profile data:", data);
-            } else {
-              console.error("Quick Auth failed:", res.status, await res.text());
-              setAuthenticatedData(null);
-            }
-        } else if (!isAuthenticated) { // If Neynar's SDK explicitly says not authenticated
-            setAuthenticatedData(null);
+        // REMOVED CONDITIONAL: Always attempt Quick Auth on component mount.
+        // sdk.quickAuth.fetch will handle whether a new token is needed.
+        const res = await sdk.quickAuth.fetch('/api/auth'); // Call our backend auth route
+  
+        if (res.ok) {
+          const data: AuthenticatedUserData = await res.json();
+          setAuthenticatedData(data);
+          console.log("Quick Auth successful. User and profile data:", data);
+        } else {
+          console.error("Quick Auth failed:", res.status, await res.text());
+          // If auth fails, ensure we set authenticatedData to null and show non-auth UI
+          setAuthenticatedData(null);
         }
       } catch (error) {
         console.error("Error during Quick Auth or profile fetch:", error);
@@ -84,7 +83,7 @@ export default function App() {
         setLoadingAuth(false);
       }
     }
-
+    
     authenticateAndLoadProfile();
   }, [user?.fid, isAuthenticated]); // Dependencies: user.fid to re-authenticate on login/logout
 
