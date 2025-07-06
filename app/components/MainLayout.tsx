@@ -2,35 +2,31 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
-import { NeynarAuthButton, useNeynarContext } from "@neynar/react"; // Keep useNeynarContext for isAuthenticated status
+import { NeynarAuthButton, useNeynarContext } from "@neynar/react";
 import Image from 'next/image';
 import { Button, Icon } from './ui/shared';
 
+// Props for MainLayout
 type MainLayoutProps = {
   children: React.ReactNode;
-  activeView: 'jobs' | 'profile';
-  setActiveView: (view: 'jobs' | 'profile') => void;
-  // authenticatedUser contains pfp_url, display_name, username if authentication succeeded
+  activeView: 'jobs' | 'profile' | 'post-job'; // <--- UPDATED TYPE HERE
+  setActiveView: (view: 'jobs' | 'profile' | 'post-job') => void; // <--- UPDATED TYPE HERE
   authenticatedUser: { pfp_url?: string; display_name?: string; username?: string } | null;
 };
 
 export default function MainLayout({ children, activeView, setActiveView, authenticatedUser }: MainLayoutProps) {
-  // isAuthenticated from useNeynarContext is generally true if Farcaster context is provided,
-  // even if our /api/auth hasn't completed yet. We should rely on `authenticatedUser` prop
-  // for displaying user-specific info and navigation control.
-  // const { isAuthenticated } = useNeynarContext(); // Removed, relying on prop
+  const { isAuthenticated } = useNeynarContext();
 
-  // Header content based on whether we have successful `authenticatedUser` data
   const headerContent = authenticatedUser ? (
     <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setActiveView('profile')}>
       {authenticatedUser.pfp_url && (
         <Image
           src={authenticatedUser.pfp_url}
           alt="Profile Picture"
-          width={32} // Smaller for header
+          width={32}
           height={32}
           className="rounded-full"
-          unoptimized={true} // Keep unoptimized for now
+          unoptimized={true}
         />
       )}
       <span className="text-md font-semibold text-[var(--app-foreground)]">
@@ -38,7 +34,6 @@ export default function MainLayout({ children, activeView, setActiveView, authen
       </span>
     </div>
   ) : (
-    // Show a generic title if user data is not yet available (loading or unauthenticated)
     <span className="text-md font-semibold text-[var(--app-foreground-muted)]">
       Farlance
     </span>
@@ -48,14 +43,12 @@ export default function MainLayout({ children, activeView, setActiveView, authen
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
       <div className="w-full max-w-md mx-auto px-4 py-3">
         <header className="flex justify-between items-center mb-3 h-11">
-          {/* Left side of header: App name or authenticated user info */}
           <div>
             {headerContent}
           </div>
 
-          {/* Right side of header: Navigation buttons if authenticated, or empty if not */}
           <div className="flex items-center space-x-2">
-            {authenticatedUser ? ( // Only show navigation if authenticatedUser data is available
+            {isAuthenticated && (
               <>
                 <Button
                   variant={activeView === 'jobs' ? 'primary' : 'ghost'}
@@ -71,11 +64,8 @@ export default function MainLayout({ children, activeView, setActiveView, authen
                 >
                   Profile
                 </Button>
+                {/* No direct "Post a Job" button in header here, it's on the ProfileView */}
               </>
-            ) : (
-              // If not authenticated, show nothing or a small loading indicator/app icon
-              // Removed <NeynarAuthButton />, as Quick Auth handles auth silently
-              null // Or a simple app logo/icon
             )}
           </div>
         </header>
