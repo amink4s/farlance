@@ -31,7 +31,7 @@ export async function POST(request: Request) {
         budget_amount: jobData.budgetAmount ? parseFloat(jobData.budgetAmount) : null,
         budget_currency: jobData.budgetCurrency || null,
         deadline: jobData.deadline || null,
-        status: 'open', // Default status for new jobs
+        status: 'open',
       })
       .select()
       .single();
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     const { data: matchingUsers, error: matchingUsersError } = await supabase
       .from('user_skills')
       // Select user_id and join profiles. The `profiles` here refers to the single related profile object.
-      // TypeScript is being strict here, so we will handle its type inference.
+      // We will now explicitly type `profiles` in the map/forEach for clarity.
       .select(`user_id, profiles(fid, display_name, username)`)
       .in('skill_id', selectedSkillIds) // Find users who have any of the required skills
       .not('user_id', 'eq', jobData.posterId) // Exclude the job poster themselves
@@ -73,14 +73,22 @@ export async function POST(request: Request) {
     } else {
       const uniqueFidsToNotify = new Set<number>();
       matchingUsers?.forEach(us => {
-        // Corrected: Access fid from the profiles object, which might be an array or single object depending on Supabase version/query interpretation.
-        // Given the error `Property 'fid' does not exist on type '...[]'`, `us.profiles` is seen as an array.
-        // We'll safely access the fid from the first element of that array.
-        if (us.profiles && Array.isArray(us.profiles) && us.profiles.length > 0 && us.profiles[0].fid) {
-          uniqueFidsToNotify.add(us.profiles[0].fid);
-        } else if (us.profiles && typeof us.profiles === 'object' && 'fid' in us.profiles && us.profiles.fid) {
-          // Fallback if profiles is treated as a single object (which is more common for 1-to-1 relations)
-          uniqueFidsToNotify.add(us.profiles.fid);
+        // Safely access the profiles property. It should be a single object, but type inference might make it an array.
+        // We'll safely check for both cases and ensure the fid is a number.
+        const profileData = us.profiles; // Get the profiles data
+
+        let currentFid: number | null = null;
+
+        if (profileData && Array.isArray(profileData) && profileData.length > 0) {
+            // Case 1: profileData is an array (e.g., Supabase might return it this way in some joins)
+            currentFid = (profileData[0] as any)?.fid as number; // Access first element, cast fid to number
+        } else if (profileData && typeof profileData === 'object' && 'fid' in profileData) {
+            // Case 2: profileData is a single object (more common for 1-to-1 relations)
+            currentFid = (profileData as any)?.fid as number; // Access directly, cast fid to number
+        }
+
+        if (typeof currentFid === 'number' && !isNaN(currentFid)) { // Ensure it's a valid number
+            uniqueFidsToNotify.add(currentFid);
         }
       });
 
