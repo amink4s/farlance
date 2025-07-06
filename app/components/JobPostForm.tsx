@@ -2,8 +2,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, ChangeEvent } from 'react';
-import { Button, Card } from './ui/shared'; // Reusable UI components
-import { supabase } from '@/lib/supabase/client'; // Client-side Supabase client
+import { Button, Card } from './ui/shared';
+import { supabase } from '@/lib/supabase/client'; // Still needed for fetching allSkills
+// Removed direct Supabase insert, will use fetch to API route
 
 // Define types matching your Supabase schema
 type Skill = {
@@ -76,12 +77,8 @@ export default function JobPostForm({ posterId, onJobPosted, onCancel }: JobPost
     });
   }, []);
 
-  // Handle saving the new job
+  // Handle saving the new job by sending data to backend API route
   const handlePostJob = async () => {
-    if (!supabaseClient) {
-      console.error("Supabase client not initialized for posting job.");
-      return;
-    }
     if (!title || !description || selectedSkillIds.size === 0) {
       alert("Please fill out Title, Description, and select at least one required skill.");
       return;
@@ -89,47 +86,35 @@ export default function JobPostForm({ posterId, onJobPosted, onCancel }: JobPost
 
     setPosting(true);
     try {
-      // 1. Insert new job into 'jobs' table
-      const { data: newJob, error: jobInsertError } = await supabaseClient
-        .from('jobs')
-        .insert({
-          poster_id: posterId,
-          title: title,
-          description: description,
-          budget_amount: budgetAmount ? parseFloat(budgetAmount) : null,
-          budget_currency: budgetCurrency || null,
-          deadline: deadline || null, // Ensure deadline is valid date string or null
-          status: 'open', // Default status for new jobs
-        })
-        .select()
-        .single();
+      const jobData = {
+        posterId: posterId,
+        title: title,
+        description: description,
+        budgetAmount: budgetAmount,
+        budgetCurrency: budgetCurrency,
+        deadline: deadline,
+      };
 
-      if (jobInsertError) {
-        console.error("Error inserting new job:", jobInsertError);
-        alert("Failed to post job.");
-        return;
+      // Send data to new backend API route
+      const res = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ jobData, selectedSkillIds: Array.from(selectedSkillIds) }),
+      });
+
+      if (res.ok) {
+        alert("Job posted successfully!");
+        onJobPosted(); // Call callback to notify parent and switch view
+      } else {
+        const errorData = await res.json();
+        console.error("Failed to post job via API:", res.status, errorData);
+        alert(`Failed to post job: ${errorData.message || 'Unknown error'}`);
       }
-
-      // 2. Insert required skills into 'job_skills' table
-      if (selectedSkillIds.size > 0) {
-        const { error: jobSkillsInsertError } = await supabaseClient
-          .from('job_skills')
-          .insert(Array.from(selectedSkillIds).map(skill_id => ({
-            job_id: newJob.id,
-            skill_id: skill_id
-          })));
-
-        if (jobSkillsInsertError) {
-          console.error("Error inserting job skills:", jobSkillsInsertError);
-          alert("Job posted, but failed to link all skills.");
-        }
-      }
-
-      alert("Job posted successfully!");
-      onJobPosted(); // Call callback to notify parent
 
     } catch (error) {
-      console.error("Unhandled error during job post:", error);
+      console.error("Unhandled error during job post frontend:", error);
       alert("An unexpected error occurred during job post.");
     } finally {
       setPosting(false);
