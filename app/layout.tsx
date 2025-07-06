@@ -1,8 +1,10 @@
+// app/layout.tsx
 import "./theme.css";
-import "@coinbase/onchainkit/styles.css";
+import "@coinbase/onchainkit/styles.css"; // Keep this if it's for general theme
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import { Suspense } from "react"; // NEW: Import Suspense
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -30,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
               process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR,
           },
         },
-        noindex: true
+        noindex: true,
       }),
     },
   };
@@ -44,7 +46,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-background">
-        <Providers>{children}</Providers>
+        {/* Wrap Providers (and thus all page content) in Suspense */}
+        <Suspense fallback={<div>Loading Farlance...</div>}> {/* NEW: Suspense boundary here */}
+          <Providers>{children}</Providers>
+        </Suspense>
       </body>
     </html>
   );

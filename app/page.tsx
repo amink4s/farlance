@@ -2,7 +2,7 @@
 "use client";
 
 import { sdk } from "@farcaster/frame-sdk";
-import React, { useEffect, useState, useCallback, Suspense } from "react"; // NEW: Import Suspense
+import React, { useEffect, useState, useCallback } from "react"; // NEW: Import Suspense
 import { useSearchParams } from 'next/navigation';
 
 import MainLayout from './components/MainLayout';
@@ -173,7 +173,6 @@ export default function App() {
 
   return (
     // Wrap MainLayout in Suspense because useSearchParams is a client-only hook
-    <Suspense fallback={<div>Loading app...</div>}> {/* NEW: Suspense Boundary */}
       <MainLayout
         activeView={activeView}
         setActiveView={setActiveView}
@@ -188,6 +187,5 @@ export default function App() {
           </Modal>
         )}
       </MainLayout>
-    </Suspense>
   );
 }
