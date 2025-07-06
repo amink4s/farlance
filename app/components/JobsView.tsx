@@ -18,7 +18,7 @@ export default function JobsView() {
             </p>
             {/* Placeholder for job search/filter and list */}
             <p className="text-[var(--app-foreground-muted)] text-sm">
-              This is where you'll find exciting job opportunities.
+              This is where you&apos;ll find exciting job opportunities.
             </p>
           </Card>
         </main>
