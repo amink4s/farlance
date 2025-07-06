@@ -2,8 +2,8 @@
 "use client";
 
 import React, { useState, useEffect, ChangeEvent } from 'react';
-import { Card, Button } from './ui/shared'; // Make sure Button is imported for potential filter/search buttons
-import { supabase } from '@/lib/supabase/client'; // Client-side Supabase client
+import { Card, Button } from './ui/shared';
+import { supabase } from '@/lib/supabase/client';
 
 // Define types for Job and Skill (as they will be joined for display)
 type Job = {
@@ -45,7 +45,7 @@ export default function JobsView() {
 
       setLoadingJobs(true);
       try {
-        // Fetch all skills for filter dropdown (if not already fetched)
+        // Fetch all skills for filter dropdown
         if (allSkills.length === 0) {
             const { data: skillsData, error: skillsError } = await supabaseClient
                 .from('skills')
@@ -60,7 +60,13 @@ export default function JobsView() {
         // Build the jobs query
         let query = supabaseClient
           .from('jobs')
-          .select('*, job_skills(skills(name))') // Select jobs and join through job_skills to get skill names
+          // IMPORTANT: Use !inner to ensure only jobs WITH matching skills are returned
+          // When filterSkillId is present, the join becomes conditional.
+          .select(
+            filterSkillId // If filtering by skill
+              ? `*, job_skills!inner(skill_id, skills(name))` // Use inner join on job_skills
+              : `*, job_skills(skill_id, skills(name))`        // Else, keep default (outer) join
+          )
           .eq('status', 'open') // Only show open jobs
           .order('created_at', { ascending: false }); // Show newest jobs first
 
@@ -69,17 +75,11 @@ export default function JobsView() {
           query = query.or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
         }
 
-        // Apply skill filter
+        // Apply skill filter if selected
         if (filterSkillId) {
-          // This requires a subquery or a more complex join. For simplicity,
-          // let's adjust this to filter by job_skills containing the skill_id.
-          // Supabase's PostgREST can sometimes handle this with .contains() or .cs()
-          // For now, if the simpler direct filter doesn't work, we might iterate client-side or use a different backend pattern.
-          // A more robust way to filter by a junction table in Supabase involves RLS or functions.
-          // For a simple frontend filter, we'll try:
-          query = query.filter('job_skills.skill_id', 'eq', filterSkillId);
+          // This filter now correctly applies to the inner-joined job_skills
+          query = query.eq('job_skills.skill_id', filterSkillId);
         }
-
 
         const { data: jobsData, error: jobsError } = await query;
 
@@ -97,7 +97,7 @@ export default function JobsView() {
     }
 
     fetchJobsAndSkills();
-  }, [supabaseClient, searchQuery, filterSkillId]); // Re-fetch when search query or filter changes
+  }, [supabaseClient, searchQuery, filterSkillId, allSkills.length]); // Added allSkills.length to dependencies for skills refetching
 
   // Handle search input
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -181,7 +181,6 @@ export default function JobsView() {
             )}
           </Card>
         </main>
-        {/* Footer is in MainLayout.tsx, so no need here */}
       </div>
     </div>
   );
