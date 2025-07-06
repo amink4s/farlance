@@ -11,6 +11,9 @@ const neynarClient = new NeynarAPIClient(new Configuration({
   apiKey: process.env.NEYNAR_API_KEY!, // Use your server-side Neynar API key
 }));
 
+// Ensure NEXT_PUBLIC_URL is defined for deep-linking
+const APP_BASE_URL = process.env.NEXT_PUBLIC_URL || 'https://farlance.vercel.app'; // Fallback for local dev
+
 export async function POST(request: Request) {
   const { jobData, selectedSkillIds, posterFid } = await request.json(); // jobData will include title, description, etc.
 
@@ -60,39 +63,34 @@ export async function POST(request: Request) {
     // 3. Find matching talent profiles based on selected skills
     const { data: matchingUsers, error: matchingUsersError } = await supabase
       .from('user_skills')
-      // Select user_id and join profiles. The `profiles` here refers to the single related profile object.
-      // We will now explicitly type `profiles` in the map/forEach for clarity.
       .select(`user_id, profiles(fid, display_name, username)`)
-      .in('skill_id', selectedSkillIds) // Find users who have any of the required skills
-    //   .not('user_id', 'eq', jobData.posterId) // Exclude the job poster themselves
-      .order('user_id', { ascending: true }); // Order to potentially deduplicate easier
+      .in('skill_id', selectedSkillIds)
+      // .not('user_id', 'eq', jobData.posterId) // Keep commented if you want poster to be notified
+      .order('user_id', { ascending: true });
 
     if (matchingUsersError) {
       console.error("Error finding matching users for job notification:", matchingUsersError);
-      // Don't fail job post, but notifications won't go out
     } else {
       const uniqueFidsToNotify = new Set<number>();
       matchingUsers?.forEach(us => {
-        // Safely access the profiles property. It should be a single object, but type inference might make it an array.
-        // We'll safely check for both cases and ensure the fid is a number.
-        const profileData = us.profiles; // Get the profiles data
-
+        const profileData = us.profiles;
         let currentFid: number | null = null;
 
         if (profileData && Array.isArray(profileData) && profileData.length > 0) {
-            // Case 1: profileData is an array (e.g., Supabase might return it this way in some joins)
-            currentFid = (profileData[0] as any)?.fid as number; // Access first element, cast fid to number
+            currentFid = (profileData[0] as any)?.fid as number;
         } else if (profileData && typeof profileData === 'object' && 'fid' in profileData) {
-            // Case 2: profileData is a single object (more common for 1-to-1 relations)
-            currentFid = (profileData as any)?.fid as number; // Access directly, cast fid to number
+            currentFid = (profileData as any)?.fid as number;
         }
 
-        if (typeof currentFid === 'number' && !isNaN(currentFid)) { // Ensure it's a valid number
+        if (typeof currentFid === 'number' && !isNaN(currentFid)) {
             uniqueFidsToNotify.add(currentFid);
         }
       });
 
       console.log(`Found ${uniqueFidsToNotify.size} unique FIDs to notify for job: ${newJob.title}`);
+
+      // Construct the deep-link URL for the notification
+      const jobDetailsUrl = `${APP_BASE_URL}/?jobId=${newJob.id}`; // <--- NEW: Deep-link URL
 
       // 4. Send Farcaster notifications to matched users
       for (const fid of uniqueFidsToNotify) {
@@ -101,8 +99,7 @@ export async function POST(request: Request) {
             fid: fid,
             title: `✨ New Farlance Job: ${newJob.title}`,
             body: `A new job matching your skills has been posted! "${newJob.description.substring(0, 70)}..."`,
-            // Optionally, add a targetUrl to deep-link users directly to this job's details page later
-            // notificationDetails: // Not needed here, sendFrameNotification fetches from Redis
+            targetUrl: jobDetailsUrl, // <--- NEW: Pass the deep-link URL
           });
           if (notificationResult.state === 'error') {
             console.error(`Failed to send notification to FID ${fid}:`, notificationResult.error);
