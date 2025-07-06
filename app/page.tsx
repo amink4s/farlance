@@ -2,13 +2,13 @@
 "use client";
 
 import { sdk } from "@farcaster/frame-sdk";
-import { useNeynarContext } from "@neynar/react";
 import React, { useEffect, useState, useCallback } from "react";
 
 import MainLayout from './components/MainLayout';
 import ProfileView from './components/ProfileView';
 import JobsView from './components/JobsView';
 import JobPostForm from './components/JobPostForm';
+import TalentView from './components/TalentView'; // NEW: Import TalentView
 
 import { supabase } from '@/lib/supabase/client';
 import { Card } from './components/ui/shared';
@@ -42,8 +42,7 @@ export default function App() {
 
   const supabaseClient = supabase;
 
-  // UPDATED: Add 'talent' to the activeView state type
-  const [activeView, setActiveView] = useState<'jobs' | 'profile' | 'post-job' | 'talent'>('jobs'); // <--- CHANGE IS HERE
+  const [activeView, setActiveView] = useState<'jobs' | 'profile' | 'post-job' | 'talent'>('jobs');
 
   // Effect to tell Farcaster SDK that the app is ready to be displayed
   useEffect(() => {
@@ -132,12 +131,8 @@ export default function App() {
           onCancel={handleCancelJobPost}
         />
       );
-    } else if (activeView === 'talent') { // NEW: Placeholder for TalentView
-      contentToRender = (
-        <Card title="Find Talent">
-          <p className="text-[var(--app-foreground-muted)]">Talent listings and filters coming soon!</p>
-        </Card>
-      );
+    } else if (activeView === 'talent') { // NEW: Render TalentView
+      contentToRender = <TalentView />;
     } else { // activeView === 'jobs' (default)
       contentToRender = <JobsView />;
     }
