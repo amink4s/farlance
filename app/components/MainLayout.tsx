@@ -10,23 +10,27 @@ type MainLayoutProps = {
   children: React.ReactNode;
   activeView: 'jobs' | 'profile';
   setActiveView: (view: 'jobs' | 'profile') => void;
-  authenticatedUser: { pfp_url: string; display_name: string; username: string } | null;
+  // authenticatedUser contains pfp_url, display_name, username if authentication succeeded
+  authenticatedUser: { pfp_url?: string; display_name?: string; username?: string } | null;
 };
 
 export default function MainLayout({ children, activeView, setActiveView, authenticatedUser }: MainLayoutProps) {
-  const { isAuthenticated } = useNeynarContext(); // Use isAuthenticated to control navigation display
+  // isAuthenticated from useNeynarContext is generally true if Farcaster context is provided,
+  // even if our /api/auth hasn't completed yet. We should rely on `authenticatedUser` prop
+  // for displaying user-specific info and navigation control.
+  // const { isAuthenticated } = useNeynarContext(); // Removed, relying on prop
 
-  // Header content based on authentication status
-  const headerContent = isAuthenticated && authenticatedUser ? (
+  // Header content based on whether we have successful `authenticatedUser` data
+  const headerContent = authenticatedUser ? (
     <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setActiveView('profile')}>
       {authenticatedUser.pfp_url && (
         <Image
           src={authenticatedUser.pfp_url}
           alt="Profile Picture"
-          width={32}
+          width={32} // Smaller for header
           height={32}
           className="rounded-full"
-          unoptimized={true}
+          unoptimized={true} // Keep unoptimized for now
         />
       )}
       <span className="text-md font-semibold text-[var(--app-foreground)]">
@@ -34,7 +38,7 @@ export default function MainLayout({ children, activeView, setActiveView, authen
       </span>
     </div>
   ) : (
-    // Show a generic title if not authenticated
+    // Show a generic title if user data is not yet available (loading or unauthenticated)
     <span className="text-md font-semibold text-[var(--app-foreground-muted)]">
       Farlance
     </span>
@@ -49,9 +53,9 @@ export default function MainLayout({ children, activeView, setActiveView, authen
             {headerContent}
           </div>
 
-          {/* Right side of header: Navigation buttons or nothing if not authenticated */}
+          {/* Right side of header: Navigation buttons if authenticated, or empty if not */}
           <div className="flex items-center space-x-2">
-            {isAuthenticated && ( // Only show navigation if authenticated
+            {authenticatedUser ? ( // Only show navigation if authenticatedUser data is available
               <>
                 <Button
                   variant={activeView === 'jobs' ? 'primary' : 'ghost'}
@@ -68,8 +72,11 @@ export default function MainLayout({ children, activeView, setActiveView, authen
                   Profile
                 </Button>
               </>
+            ) : (
+              // If not authenticated, show nothing or a small loading indicator/app icon
+              // Removed <NeynarAuthButton />, as Quick Auth handles auth silently
+              null // Or a simple app logo/icon
             )}
-            {/* NeynarAuthButton removed here, as Quick Auth handles the primary auth */}
           </div>
         </header>
 
@@ -77,7 +84,7 @@ export default function MainLayout({ children, activeView, setActiveView, authen
           {children}
         </main>
 
-        <footer>
+        <footer className="mt-2 pt-4 flex justify-center">
            <span className="text-[var(--app-foreground-muted)] text-xs">
              Farlance: Built for Farcaster
            </span>
