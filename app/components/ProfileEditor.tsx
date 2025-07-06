@@ -14,6 +14,7 @@ type Profile = {
   bio?: string | null;
   contact_info?: string | null;
   created_at: string;
+  pfp_url?: string | null; 
 };
 
 type Skill = {

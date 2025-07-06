@@ -17,6 +17,7 @@ type Profile = {
   created_at: string;
   // Joined skills will be nested like: user_skills: [{ skills: { id: string, name: string } }]
   user_skills?: { skills: { id: string; name: string } }[];
+  pfp_url?: string | null; 
 };
 
 type Skill = {
@@ -54,12 +55,14 @@ export default function TalentView() {
             setAllSkills(skillsData || []);
           }
         }
-
+        
         // Build the talent query
         let query = supabaseClient
           .from('profiles')
-          .select('*, user_skills(skills(id, name))') // Select profiles and join to get user's skills
-          .order('created_at', { ascending: false }); // Show newest profiles first
+          // Select profiles and inner join to user_skills to ensure profile has skills
+          // Then select skills from the join
+          .select('*, user_skills!inner(skills(id, name))') // <--- CRITICAL CHANGE HERE: use !inner to ensure a match
+          .order('created_at', { ascending: false });
 
         // Apply search query filter (by username or display name or bio)
         if (searchQuery) {
@@ -68,15 +71,12 @@ export default function TalentView() {
 
         // Apply skill filter
         if (filterSkillId) {
-          // This requires filtering profiles that have a specific skill through the junction table.
-          // Supabase allows this with `cs` (contains) or by filtering directly on the related table.
-          // For simplicity for the initial implementation, we'll aim for direct filter if supported,
-          // or handle client-side filtering if complex backend queries prove difficult with PostgREST.
-          // A more robust backend approach would involve a stored procedure or RLS.
+          // Now that we have the !inner join, we can filter directly on the joined skill_id
           query = query.filter('user_skills.skill_id', 'eq', filterSkillId);
         }
 
         const { data: talentData, error: talentError } = await query;
+// ...
 
         if (talentError) {
           console.error("Error fetching talent profiles:", talentError);
