@@ -1,7 +1,7 @@
 // components/TalentView.tsx
 "use client";
 
-import React, { useState, useEffect, ChangeEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent, useMemo } from 'react'; // NEW: Added useMemo
 import { Card, Button } from './ui/shared';
 import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
@@ -15,9 +15,9 @@ type Profile = {
   bio?: string | null;
   contact_info?: string | null;
   created_at: string;
+  pfp_url?: string | null; // Added pfp_url
   // Joined skills will be nested like: user_skills: [{ skills: { id: string, name: string } }]
   user_skills?: { skills: { id: string; name: string } }[];
-  pfp_url?: string | null; 
 };
 
 type Skill = {
@@ -27,8 +27,8 @@ type Skill = {
 
 export default function TalentView() {
   const [loadingTalent, setLoadingTalent] = useState(true);
-  const [allTalent, setAllTalent] = useState<Profile[]>([]);
-  const [allSkills, setAllSkills] = useState<Skill[]>([]); // For filtering by skills
+  const [allTalent, setAllTalent] = useState<Profile[]>([]); // Stores all talent, pre-filtered by having *any* skill
+  const [allSkills, setAllSkills] = useState<Skill[]>([]); // For filter dropdown
   const [searchQuery, setSearchQuery] = useState(''); // For searching by name/bio
   const [filterSkillId, setFilterSkillId] = useState<string | null>(null);
 
@@ -55,35 +55,32 @@ export default function TalentView() {
             setAllSkills(skillsData || []);
           }
         }
-        
-        // Build the talent query
+
+        // Build the talent query: Select profiles that have AT LEAST ONE skill
+        // Use user_skills!inner to only get profiles that have any skills associated
         let query = supabaseClient
           .from('profiles')
-          // Select profiles and inner join to user_skills to ensure profile has skills
-          // Then select skills from the join
-          .select('*, user_skills!inner(skills(id, name))') // <--- CRITICAL CHANGE HERE: use !inner to ensure a match
-          .order('created_at', { ascending: false });
+          .select('*, user_skills!inner(skills(id, name))') // Always fetch all skills for filtered users
+          .order('created_at', { ascending: false }); // Show newest profiles first
 
         // Apply search query filter (by username or display name or bio)
         if (searchQuery) {
           query = query.or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%,bio.ilike.%${searchQuery}%`);
         }
 
-        // Apply skill filter
-        if (filterSkillId) {
-          // Now that we have the !inner join, we can filter directly on the joined skill_id
-          query = query.filter('user_skills.skill_id', 'eq', filterSkillId);
-        }
+        // No filtering by skill here on the backend, we will do it client-side for display
+        // if (filterSkillId) {
+        //   query = query.filter('user_skills.skill_id', 'eq', filterSkillId);
+        // }
 
         const { data: talentData, error: talentError } = await query;
-// ...
 
         if (talentError) {
           console.error("Error fetching talent profiles:", talentError);
           return;
         }
 
-        setAllTalent(talentData || []);
+        setAllTalent(talentData || []); // Store all fetched talent (who have at least one skill)
 
       } catch (error) {
         console.error("Unhandled error in TalentView:", error);
@@ -93,7 +90,7 @@ export default function TalentView() {
     }
 
     fetchTalentAndSkills();
-  }, [supabaseClient, searchQuery, filterSkillId]); // Re-fetch when search/filter changes
+  }, [supabaseClient, searchQuery, allSkills.length]); // filterSkillId removed from dependencies, as it's client-side filtered
 
   // Handle search input
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -104,6 +101,19 @@ export default function TalentView() {
   const handleSkillFilterChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setFilterSkillId(e.target.value === '' ? null : e.target.value);
   };
+
+  // Client-side filtering of talent profiles
+  const filteredTalent = useMemo(() => {
+    if (!filterSkillId) {
+      return allTalent; // No skill filter applied
+    }
+
+    // Filter profiles if they have the selected skill in their user_skills array
+    return allTalent.filter(profile =>
+      profile.user_skills?.some(us => us.skills.id === filterSkillId)
+    );
+  }, [allTalent, filterSkillId]);
+
 
   if (loadingTalent) {
     return (
@@ -135,27 +145,26 @@ export default function TalentView() {
                 <option value="">Filter by Skill (All)</option>
                 {allSkills.map(skill => (
                   <option key={skill.id} value={skill.id}>
-                    {skill.name}
+                        {skill.name}
                   </option>
                 ))}
               </select>
             </div>
 
-            {allTalent.length === 0 ? (
+            {filteredTalent.length === 0 ? ( // Use filteredTalent for display
               <p className="text-[var(--app-foreground-muted)]">
                 No talent profiles found matching your criteria.
               </p>
             ) : (
               <div className="space-y-4">
-                {allTalent.map(profile => (
+                {filteredTalent.map(profile => ( // Use filteredTalent for map
                   <Card key={profile.id} className="cursor-pointer" onClick={() => alert(`View Talent: ${profile.display_name || profile.username}`)}>
                     <div className="flex items-center space-x-4">
-                      {/* Note: This PFP is from the fetched profile, not the currently logged-in user's context */}
-                      {profile.pfp_url && ( // Assuming profiles table has pfp_url or Neynar fetches it
+                      {profile.pfp_url && (
                         <Image
-                          src={profile.pfp_url} // Replace with actual pfp_url from profile if stored/fetched
+                          src={profile.pfp_url}
                           alt={`${profile.display_name || profile.username}'s Profile Picture`}
-                          width={48} // Smaller for list items
+                          width={48}
                           height={48}
                           className="rounded-full"
                           unoptimized={true}
@@ -186,7 +195,6 @@ export default function TalentView() {
             )}
           </Card>
         </main>
-        {/* Footer is in MainLayout.tsx */}
       </div>
     </div>
   );
