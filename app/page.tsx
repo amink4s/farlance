@@ -2,16 +2,16 @@
 "use client";
 
 import { sdk } from "@farcaster/frame-sdk";
-import React, { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from 'next/navigation'; // NEW: Import useSearchParams
+import React, { useEffect, useState, useCallback, Suspense } from "react"; // NEW: Import Suspense
+import { useSearchParams } from 'next/navigation';
 
 import MainLayout from './components/MainLayout';
 import ProfileView from './components/ProfileView';
 import JobsView from './components/JobsView';
 import JobPostForm from './components/JobPostForm';
 import TalentView from './components/TalentView';
-import JobDetails from './components/JobDetails'; // NEW: Import JobDetails
-import Modal from './components/ui/Modal'; // NEW: Import Modal
+import JobDetails from './components/JobDetails';
+import Modal from './components/ui/Modal';
 
 import { supabase } from '@/lib/supabase/client';
 import { Card } from './components/ui/shared';
@@ -47,12 +47,12 @@ export default function App() {
 
   const [activeView, setActiveView] = useState<'jobs' | 'profile' | 'post-job' | 'talent'>('jobs');
 
-  // NEW: State for Job Details Modal (controlled from app/page.tsx for deep-linking)
+  // State for Job Details Modal (controlled from app/page.tsx for deep-linking)
   const [isJobDetailsModalOpen, setIsJobDetailsModalOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [initialJobIdFromUrl, setInitialJobIdFromUrl] = useState<string | null>(null); // To store jobId from URL
+  const [initialJobIdFromUrl, setInitialJobIdFromUrl] = useState<string | null>(null);
 
-  const searchParams = useSearchParams(); // NEW: Hook to access URL search parameters
+  const searchParams = useSearchParams();
 
   // Effect to tell Farcaster SDK that the app is ready to be displayed
   useEffect(() => {
@@ -94,14 +94,15 @@ export default function App() {
     authenticateAndLoadProfile();
   }, []);
 
-  // NEW: Effect to read jobId from URL on initial load and open modal
+  // Effect to read jobId from URL on initial load and open modal
+  // This useEffect uses useSearchParams, so its parent (App component's JSX) needs Suspense.
   useEffect(() => {
     const jobIdParam = searchParams.get('jobId');
-    if (jobIdParam && !initialJobIdFromUrl) { // Only set if not already set
+    if (jobIdParam && !initialJobIdFromUrl) {
       setInitialJobIdFromUrl(jobIdParam);
       setSelectedJobId(jobIdParam);
       setIsJobDetailsModalOpen(true);
-      setActiveView('jobs'); // Ensure 'jobs' view is active when deep-linking to a job
+      setActiveView('jobs');
     }
   }, [searchParams, initialJobIdFromUrl]);
 
@@ -117,11 +118,10 @@ export default function App() {
     setActiveView('profile');
   }, []);
 
-  // NEW: Close Job Details Modal (from app/page.tsx)
+  // Close Job Details Modal (from app/page.tsx)
   const closeJobDetailsModal = useCallback(() => {
     setIsJobDetailsModalOpen(false);
     setSelectedJobId(null);
-    // Optionally, remove jobId from URL to clean up
     const newUrl = new URL(window.location.href);
     newUrl.searchParams.delete('jobId');
     window.history.replaceState({}, '', newUrl.toString());
@@ -172,19 +172,22 @@ export default function App() {
   }
 
   return (
-    <MainLayout
-      activeView={activeView}
-      setActiveView={setActiveView}
-      authenticatedUser={authenticatedData?.user || null}
-    >
-      {contentToRender}
+    // Wrap MainLayout in Suspense because useSearchParams is a client-only hook
+    <Suspense fallback={<div>Loading app...</div>}> {/* NEW: Suspense Boundary */}
+      <MainLayout
+        activeView={activeView}
+        setActiveView={setActiveView}
+        authenticatedUser={authenticatedData?.user || null}
+      >
+        {contentToRender}
 
-      {/* NEW: Job Details Modal (controlled from app/page.tsx) */}
-      {isJobDetailsModalOpen && selectedJobId && (
-        <Modal isOpen={isJobDetailsModalOpen} onClose={closeJobDetailsModal}>
-          <JobDetails jobId={selectedJobId} onClose={closeJobDetailsModal} />
-        </Modal>
-      )}
-    </MainLayout>
+        {/* Job Details Modal (controlled from app/page.tsx) */}
+        {isJobDetailsModalOpen && selectedJobId && (
+          <Modal isOpen={isJobDetailsModalOpen} onClose={closeJobDetailsModal}>
+            <JobDetails jobId={selectedJobId} onClose={closeJobDetailsModal} />
+          </Modal>
+        )}
+      </MainLayout>
+    </Suspense>
   );
 }
