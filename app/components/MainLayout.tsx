@@ -2,21 +2,19 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
-import { NeynarAuthButton, useNeynarContext } from "@neynar/react";
-import Image from 'next/image'; // For PFP in header
-import { Button, Icon } from './ui/shared'; // Use Button and Icon from shared
+import { NeynarAuthButton, useNeynarContext } from "@neynar/react"; // Keep useNeynarContext for isAuthenticated status
+import Image from 'next/image';
+import { Button, Icon } from './ui/shared';
 
-// Props for MainLayout
 type MainLayoutProps = {
-  children: React.ReactNode; // The content of the active view (ProfileView or JobsView)
+  children: React.ReactNode;
   activeView: 'jobs' | 'profile';
   setActiveView: (view: 'jobs' | 'profile') => void;
-  // Pass authenticatedUser and supabaseProfile down to header if needed
   authenticatedUser: { pfp_url: string; display_name: string; username: string } | null;
 };
 
 export default function MainLayout({ children, activeView, setActiveView, authenticatedUser }: MainLayoutProps) {
-  const { user, isAuthenticated } = useNeynarContext(); // Use Neynar context here for header data
+  const { isAuthenticated } = useNeynarContext(); // Use isAuthenticated to control navigation display
 
   // Header content based on authentication status
   const headerContent = isAuthenticated && authenticatedUser ? (
@@ -25,7 +23,7 @@ export default function MainLayout({ children, activeView, setActiveView, authen
         <Image
           src={authenticatedUser.pfp_url}
           alt="Profile Picture"
-          width={32} // Smaller for header
+          width={32}
           height={32}
           className="rounded-full"
           unoptimized={true}
@@ -36,6 +34,7 @@ export default function MainLayout({ children, activeView, setActiveView, authen
       </span>
     </div>
   ) : (
+    // Show a generic title if not authenticated
     <span className="text-md font-semibold text-[var(--app-foreground-muted)]">
       Farlance
     </span>
@@ -50,10 +49,9 @@ export default function MainLayout({ children, activeView, setActiveView, authen
             {headerContent}
           </div>
 
-          {/* Right side of header: Auth button or navigation */}
+          {/* Right side of header: Navigation buttons or nothing if not authenticated */}
           <div className="flex items-center space-x-2">
-            {isAuthenticated ? (
-              // Show navigation buttons if authenticated
+            {isAuthenticated && ( // Only show navigation if authenticated
               <>
                 <Button
                   variant={activeView === 'jobs' ? 'primary' : 'ghost'}
@@ -70,23 +68,19 @@ export default function MainLayout({ children, activeView, setActiveView, authen
                   Profile
                 </Button>
               </>
-            ) : (
-              // Show sign in button if not authenticated
-              <NeynarAuthButton />
             )}
+            {/* NeynarAuthButton removed here, as Quick Auth handles the primary auth */}
           </div>
         </header>
 
-        {/* Main content area, passed as children */}
         <main className="flex-1">
           {children}
         </main>
 
-        {/* Footer */}
-        <footer className="mt-2 pt-4 flex justify-center">
-          <span className="text-[var(--app-foreground-muted)] text-xs">
-            Farlance: Built for Farcaster
-          </span>
+        <footer>
+           <span className="text-[var(--app-foreground-muted)] text-xs">
+             Farlance: Built for Farcaster
+           </span>
         </footer>
       </div>
     </div>
