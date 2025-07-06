@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       // We will now explicitly type `profiles` in the map/forEach for clarity.
       .select(`user_id, profiles(fid, display_name, username)`)
       .in('skill_id', selectedSkillIds) // Find users who have any of the required skills
-      .not('user_id', 'eq', jobData.posterId) // Exclude the job poster themselves
+    //   .not('user_id', 'eq', jobData.posterId) // Exclude the job poster themselves
       .order('user_id', { ascending: true }); // Order to potentially deduplicate easier
 
     if (matchingUsersError) {
