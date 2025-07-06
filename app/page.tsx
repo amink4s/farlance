@@ -1,18 +1,21 @@
 // app/page.tsx
-"use client"; // This directive is necessary for client-side hooks and components
+"use client";
 
 import { sdk } from "@farcaster/frame-sdk";
-import { NeynarAuthButton, useNeynarContext } from "@neynar/react";
+import { useNeynarContext } from "@neynar/react"; // Only useNeynarContext
+import React, { useEffect, useState, useCallback } from "react";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { Button, Icon, Card } from "./components/ui/shared"; // Your shared UI components
-import { supabase } from '@/lib/supabase/client'; // Import the Supabase client INSTANCE
-import Image from 'next/image'; // Used for displaying Farcaster PFP
+// Import the new layout and view components
+import MainLayout from './components/MainLayout';
+import ProfileView from './components/ProfileView';
+import JobsView from './components/JobsView';
 
-import ProfileEditor from './components/ProfileEditor'; // Import the ProfileEditor component
-import SkillDisplay from './components/SkillDisplay'; // <--- NEW: Import the SkillDisplay component
+// Import Supabase client and types
+import { supabase } from '@/lib/supabase/client';
+// Import Card here, as it's used in this file too
+import { Card } from './components/ui/shared'; // <--- NEW: Import Card here
 
-// Define types for data received from /api/auth and your Supabase profile
+// Define types for data from /api/auth and Supabase
 type FarcasterUserAuth = {
   fid: number;
   username: string;
@@ -20,9 +23,9 @@ type FarcasterUserAuth = {
   pfp_url: string;
 };
 
-type SupabaseProfile = { // Updated to be consistent with Profile type in ProfileEditor.tsx
-  id: string; // UUID from Supabase
-  fid: number; // Farcaster ID
+type SupabaseProfile = {
+  id: string;
+  fid: number;
   username?: string | null;
   display_name?: string | null;
   bio?: string | null;
@@ -36,13 +39,13 @@ type AuthenticatedUserData = {
 };
 
 export default function App() {
-  const { user, isAuthenticated } = useNeynarContext(); // Neynar user context (user is Neynar's INeynarAuthenticatedUser)
+  const { user, isAuthenticated } = useNeynarContext(); // Neynar user context
   const [authenticatedData, setAuthenticatedData] = useState<AuthenticatedUserData | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   const supabaseClient = supabase;
 
-  const [showProfileEditor, setShowProfileEditor] = useState(false); // State to control ProfileEditor visibility
+  const [activeView, setActiveView] = useState<'jobs' | 'profile'>('jobs'); // State to manage current view
 
   // Effect to tell Farcaster SDK that the app is ready to be displayed
   useEffect(() => {
@@ -60,15 +63,19 @@ export default function App() {
     async function authenticateAndLoadProfile() {
       setLoadingAuth(true);
       try {
-        const res = await sdk.quickAuth.fetch('/api/auth');
+        if (user?.fid) { // Use user.fid as a primary check for Farcaster presence
+            const res = await sdk.quickAuth.fetch('/api/auth');
 
-        if (res.ok) {
-          const data: AuthenticatedUserData = await res.json();
-          setAuthenticatedData(data);
-          console.log("Quick Auth successful. User and profile data:", data);
-        } else {
-          console.error("Quick Auth failed:", res.status, await res.text());
-          setAuthenticatedData(null);
+            if (res.ok) {
+              const data: AuthenticatedUserData = await res.json();
+              setAuthenticatedData(data);
+              console.log("Quick Auth successful. User and profile data:", data);
+            } else {
+              console.error("Quick Auth failed:", res.status, await res.text());
+              setAuthenticatedData(null);
+            }
+        } else if (!isAuthenticated) { // If Neynar's SDK explicitly says not authenticated
+            setAuthenticatedData(null);
         }
       } catch (error) {
         console.error("Error during Quick Auth or profile fetch:", error);
@@ -79,99 +86,47 @@ export default function App() {
     }
 
     authenticateAndLoadProfile();
-  }, []);
+  }, [user?.fid, isAuthenticated]); // Dependencies: user.fid to re-authenticate on login/logout
 
-  // Callback when ProfileEditor saves changes
-  const handleProfileSave = useCallback((updatedProfile: SupabaseProfile) => {
-    if (authenticatedData) {
-      setAuthenticatedData(prev => prev ? { ...prev, profile: updatedProfile } : null);
+  // Determine content to show based on auth and loading state
+  let contentToRender: React.ReactNode;
+
+  if (loadingAuth) {
+    contentToRender = (
+      <Card title="Connecting to Farcaster...">
+        <p className="text-[var(--app-foreground-muted)]">Please wait while we connect your Farcaster identity.</p>
+      </Card>
+    );
+  } else if (!authenticatedData) {
+    contentToRender = (
+      <Card title="Welcome to Farlance">
+        <p className="text-[var(--app-foreground-muted)] mb-4">
+          Please ensure you are viewing this Mini App in a Farcaster client (like Warpcast) to sign in automatically.
+        </p>
+      </Card>
+    );
+  } else { // User is authenticated and data is loaded
+    if (activeView === 'profile') {
+      contentToRender = (
+        <ProfileView
+          authenticatedUser={authenticatedData.user}
+          supabaseProfile={authenticatedData.profile}
+          onProfileUpdate={(updatedProfile) => setAuthenticatedData(prev => prev ? { ...prev, profile: updatedProfile } : null)}
+        />
+      );
+    } else { // activeView === 'jobs'
+      contentToRender = <JobsView />;
     }
-    setShowProfileEditor(false); // Close the editor after save
-  }, [authenticatedData]);
+  }
 
-  // Callback to cancel ProfileEditor
-  const handleProfileCancel = useCallback(() => {
-    setShowProfileEditor(false); // Close the editor
-  }, []);
-
-  // Main UI Render Logic
+  // MainLayout will wrap all the content and provide the header/footer/navigation
   return (
-    <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
-      <div className="w-full max-w-md mx-auto px-4 py-3">
-        <header className="flex justify-between items-center mb-3 h-11">
-          <div className="flex items-center space-x-2">
-            <NeynarAuthButton />
-          </div>
-        </header>
-
-        <main className="flex-1">
-          {showProfileEditor && authenticatedData ? (
-            <ProfileEditor
-              userProfile={authenticatedData.profile}
-              onSave={handleProfileSave}
-              onCancel={handleProfileCancel}
-            />
-          ) : loadingAuth ? (
-            <Card title="Connecting to Farcaster...">
-              <p className="text-[var(--app-foreground-muted)]">Please wait while we connect your Farcaster identity.</p>
-            </Card>
-          ) : !authenticatedData ? (
-            <Card title="Welcome to Farlance">
-              <p className="text-[var(--app-foreground-muted)] mb-4">
-                Please ensure you are viewing this Mini App in a Farcaster client (like Warpcast) to sign in automatically.
-              </p>
-            </Card>
-          ) : ( // User is authenticated and data is loaded, show profile display
-            <Card title="Your Farlance Profile">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  {authenticatedData.user.pfp_url && (
-                    <Image
-                      src={authenticatedData.user.pfp_url}
-                      alt="Farcaster Profile Picture"
-                      width={64}
-                      height={64}
-                      className="rounded-full"
-                      unoptimized={true}
-                    />
-                  )}
-                  <div>
-                    <p className="text-xl font-bold">{authenticatedData.user.display_name || authenticatedData.user.username || 'Unnamed Farcaster'}</p>
-                    <p className="text-[var(--app-foreground-muted)] text-sm">@{authenticatedData.user.username || 'N/A'}</p>
-                    <p className="text-[var(--app-foreground-muted)] text-sm">FID: {authenticatedData.user.fid}</p>
-                  </div>
-                </div>
-                <p className="text-[var(--app-foreground-muted)]">
-                  {authenticatedData.profile.bio || 'No custom bio provided yet. Add it in Edit Profile.'}
-                </p>
-                {authenticatedData.profile.contact_info && (
-                  <p className="text-[var(--app-foreground-muted)]">
-                    Contact: {authenticatedData.profile.contact_info}
-                  </p>
-                )}
-                <p className="text-[var(--app-foreground-muted)] text-xs">
-                  Supabase Profile ID: {authenticatedData.profile.id}
-                </p>
-
-                {/* Button to open ProfileEditor */}
-                <Button variant="primary" size="md" onClick={() => setShowProfileEditor(true)}>
-                  Edit Profile & Skills
-                </Button>
-              </div>
-              {/* Display selected skills */}
-              {authenticatedData.profile.id && (
-                <SkillDisplay profileId={authenticatedData.profile.id} />
-              )}
-            </Card>
-          )}
-        </main>
-
-        <footer className="mt-2 pt-4 flex justify-center">
-           <span className="text-[var(--app-foreground-muted)] text-xs">
-             Farlance: Built for Farcaster
-           </span>
-        </footer>
-      </div>
-    </div>
+    <MainLayout
+      activeView={activeView}
+      setActiveView={setActiveView}
+      authenticatedUser={authenticatedData?.user || null}
+    >
+      {contentToRender}
+    </MainLayout>
   );
 }
