@@ -15,9 +15,9 @@ type Job = {
   description: string;
   budget_amount?: number | null;
   budget_currency?: string | null;
-  deadline?: string | null;
+  deadline?: string | null; // ISO string format
   status: string;
-  created_at: string;
+  created_at: string; // ISO string format
   job_skills?: { skill_id: string; skills: { name: string } }[]; // Nested skills
 };
 
@@ -64,7 +64,12 @@ export default function JobsView() {
         // Fetch jobs, joining job_skills and skills tables
         let query = supabaseClient
           .from('jobs')
-          .select('*, job_skills!inner(skills(id, name))') // Use inner join to only get jobs with skills
+          .select(
+            filterSkillId // If filtering by skill
+              ? `*, job_skills!inner(skill_id, skills(name))` // Use inner join on job_skills
+              : `*, job_skills(skill_id, skills(name))`        // Else, keep default (outer) join
+          )
+          .eq('status', 'open') // Only show open jobs
           .order('created_at', { ascending: false }); // Show newest jobs first
 
         // Apply search query filter (by title or description)
@@ -74,7 +79,7 @@ export default function JobsView() {
 
         // Apply skill filter if selected
         if (filterSkillId) {
-          query = query.filter('job_skills.skill_id', 'eq', filterSkillId);
+          query = query.eq('job_skills.skill_id', filterSkillId);
         }
 
         const { data: jobsData, error: jobsError } = await query;
@@ -131,3 +136,68 @@ export default function JobsView() {
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
       <div className="w-full max-w-md mx-auto px-4 py-3">
         <main className="flex-1">
+          <Card title="Open Jobs on Farlance">
+            <div className="space-y-4 mb-4">
+              {/* Search and Filter Inputs */}
+              <input
+                type="text"
+                placeholder="Search jobs by title or description..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                className="w-full px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg text-[var(--app-foreground)] placeholder-[var(--app-foreground-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
+              />
+              <select
+                value={filterSkillId || ''}
+                onChange={handleSkillFilterChange}
+                className="w-full px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg text-[var(--app-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
+              >
+                <option value="">Filter by Skill (All)</option>
+                {allSkills.map(skill => (
+                  <option key={skill.id} value={skill.id}>
+                        {skill.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {allJobs.length === 0 ? (
+              <p className="text-[var(--app-foreground-muted)]">
+                No jobs found matching your criteria.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {allJobs.map(job => (
+                  <Card key={job.id} className="cursor-pointer" onClick={() => openJobDetailsModal(job.id)}>
+                    <h3 className="text-lg font-semibold text-[var(--app-foreground)]">{job.title}</h3>
+                    <p className="text-[var(--app-foreground-muted)] text-sm mt-1">
+                      {job.description.substring(0, 100)}...
+                    </p>
+                    {job.budget_amount && (
+                      <p className="text-[var(--app-foreground)] text-xs mt-1">
+                        Budget: {job.budget_amount} {job.budget_currency || 'USD'}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {job.job_skills?.map(js => (
+                        <span key={js.skill_id} className="bg-[var(--app-accent)] text-[var(--app-background)] text-xs font-medium px-2 py-0.5 rounded-full">
+                          {js.skills.name}
+                        </span>
+                      ))}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </Card>
+        </main>
+      </div>
+
+      {/* Job Details Modal */}
+      {isJobDetailsModalOpen && selectedJobId && (
+        <Modal isOpen={isJobDetailsModalOpen} onClose={closeJobDetailsModal}>
+          <JobDetails jobId={selectedJobId} onClose={closeJobDetailsModal} />
+        </Modal>
+      )}
+    </div>
+  );
+}
