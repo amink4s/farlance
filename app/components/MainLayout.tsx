@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
-// REMOVED: import { NeynarAuthButton, useNeynarContext } from "@neynar/react"; // Removing useNeynarContext and NeynarAuthButton import
 import Image from 'next/image';
 import { Button, Icon } from './ui/shared';
 
@@ -14,19 +13,18 @@ type MainLayoutProps = {
 };
 
 export default function MainLayout({ children, activeView, setActiveView, authenticatedUser }: MainLayoutProps) {
-  // REMOVED: const { isAuthenticated } = useNeynarContext(); // No longer using useNeynarContext. Relies on authenticatedUser prop.
-
   // Header content based on whether we have successful `authenticatedUser` data
-  const headerContent = authenticatedUser ? ( // If authenticatedUser is not null, display user info
+  const headerContent = authenticatedUser ? (
+    // Make the entire div clickable to switch to profile view
     <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setActiveView('profile')}>
       {authenticatedUser.pfp_url && (
         <Image
           src={authenticatedUser.pfp_url}
           alt="Profile Picture"
-          width={32}
+          width={32} // Smaller for header
           height={32}
           className="rounded-full"
-          unoptimized={true}
+          unoptimized={true} // Keep unoptimized for now
         />
       )}
       <span className="text-md font-semibold text-[var(--app-foreground)]">
@@ -60,16 +58,25 @@ export default function MainLayout({ children, activeView, setActiveView, authen
                 >
                   Jobs
                 </Button>
-                <Button
+                {/* REMOVED: Profile button is no longer needed as header PFP/Name is clickable */}
+                {/* <Button
                   variant={activeView === 'profile' ? 'primary' : 'ghost'}
                   size="sm"
                   onClick={() => setActiveView('profile')}
                 >
                   Profile
+                </Button> */}
+                {/* NEW: Placeholder for "Find Talent" button here */}
+                <Button
+                  variant={activeView === 'talent' ? 'primary' : 'ghost'} // Future 'talent' view
+                  size="sm"
+                  onClick={() => alert('Find Talent functionality coming soon!')} // Will be setActiveView('talent') later
+                >
+                  Find Talent
                 </Button>
               </>
             ) : (
-              // If not authenticated, show nothing in the right header (NeynarAuthButton is removed)
+              // If not authenticated, show nothing in the right header
               null
             )}
           </div>
