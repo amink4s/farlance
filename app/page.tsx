@@ -8,7 +8,7 @@ import MainLayout from './components/MainLayout';
 import ProfileView from './components/ProfileView';
 import JobsView from './components/JobsView';
 import JobPostForm from './components/JobPostForm';
-import TalentView from './components/TalentView'; // NEW: Import TalentView
+import TalentView from './components/TalentView';
 
 import { supabase } from '@/lib/supabase/client';
 import { Card } from './components/ui/shared';
@@ -29,7 +29,6 @@ type SupabaseProfile = {
   bio?: string | null;
   contact_info?: string | null;
   created_at: string;
-  pfp_url?: string | null; 
 };
 
 type AuthenticatedUserData = {
@@ -128,11 +127,12 @@ export default function App() {
       contentToRender = (
         <JobPostForm
           posterId={authenticatedData.profile.id}
+          posterFid={authenticatedData.user.fid} // <--- NEW: Pass posterFid here
           onJobPosted={handleJobPosted}
           onCancel={handleCancelJobPost}
         />
       );
-    } else if (activeView === 'talent') { // NEW: Render TalentView
+    } else if (activeView === 'talent') {
       contentToRender = <TalentView />;
     } else { // activeView === 'jobs' (default)
       contentToRender = <JobsView />;

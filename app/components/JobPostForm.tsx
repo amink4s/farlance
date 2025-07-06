@@ -3,8 +3,7 @@
 
 import React, { useState, useEffect, useCallback, ChangeEvent } from 'react';
 import { Button, Card } from './ui/shared';
-import { supabase } from '@/lib/supabase/client'; // Still needed for fetching allSkills
-// Removed direct Supabase insert, will use fetch to API route
+import { supabase } from '@/lib/supabase/client';
 
 // Define types matching your Supabase schema
 type Skill = {
@@ -15,12 +14,13 @@ type Skill = {
 
 // Props for JobPostForm component
 type JobPostFormProps = {
-  posterId: string; // The Supabase profile ID of the user posting the job
-  onJobPosted: () => void; // Callback after successful job post
-  onCancel: () => void; // Callback to close the form
+  posterId: string; // The Supabase profile ID of the user posting the job (UUID)
+  posterFid: number; // <--- NEW: The Farcaster ID of the user posting the job (number)
+  onJobPosted: () => void;
+  onCancel: () => void;
 };
 
-export default function JobPostForm({ posterId, onJobPosted, onCancel }: JobPostFormProps) {
+export default function JobPostForm({ posterId, posterFid, onJobPosted, onCancel }: JobPostFormProps) { // NEW: Receive posterFid
   const [loadingSkills, setLoadingSkills] = useState(true);
   const [posting, setPosting] = useState(false);
   const [allSkills, setAllSkills] = useState<Skill[]>([]);
@@ -29,11 +29,11 @@ export default function JobPostForm({ posterId, onJobPosted, onCancel }: JobPost
   // Form fields state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [budgetAmount, setBudgetAmount] = useState<string>(''); // Keep as string for input
+  const [budgetAmount, setBudgetAmount] = useState<string>('');
   const [budgetCurrency, setBudgetCurrency] = useState('');
-  const [deadline, setDeadline] = useState(''); // Keep as string for input datetime-local
+  const [deadline, setDeadline] = useState('');
 
-  const supabaseClient = supabase; // Use the imported client instance
+  const supabaseClient = supabase;
 
   // Fetch all available skills on mount
   useEffect(() => {
@@ -87,7 +87,7 @@ export default function JobPostForm({ posterId, onJobPosted, onCancel }: JobPost
     setPosting(true);
     try {
       const jobData = {
-        posterId: posterId,
+        posterId: posterId, // Supabase profile ID
         title: title,
         description: description,
         budgetAmount: budgetAmount,
@@ -101,7 +101,8 @@ export default function JobPostForm({ posterId, onJobPosted, onCancel }: JobPost
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ jobData, selectedSkillIds: Array.from(selectedSkillIds) }),
+        // NEW: Include posterFid in the request body
+        body: JSON.stringify({ jobData, selectedSkillIds: Array.from(selectedSkillIds), posterFid: posterFid }),
       });
 
       if (res.ok) {
