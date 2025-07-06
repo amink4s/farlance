@@ -30,6 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
               process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR,
           },
         },
+        noindex: true
       }),
     },
   };
