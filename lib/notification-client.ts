@@ -1,3 +1,6 @@
+// lib/notification-client.ts
+"use client"; // This directive is present in the file, keep it
+
 import {
   FrameNotificationDetails,
   type SendNotificationRequest,
@@ -5,13 +8,11 @@ import {
 } from "@farcaster/frame-sdk";
 import { getUserNotificationDetails } from "@/lib/notification";
 
+// The default appUrl might be used if targetUrl is not provided
 const appUrl = process.env.NEXT_PUBLIC_URL || "";
 
 type SendFrameNotificationResult =
-  | {
-      state: "error";
-      error: unknown;
-    }
+  | { state: "error"; error: unknown; }
   | { state: "no_token" }
   | { state: "rate_limit" }
   | { state: "success" };
@@ -21,11 +22,13 @@ export async function sendFrameNotification({
   title,
   body,
   notificationDetails,
+  targetUrl, // <--- NEW: Accept targetUrl here as a parameter
 }: {
   fid: number;
   title: string;
   body: string;
   notificationDetails?: FrameNotificationDetails | null;
+  targetUrl?: string; // <--- NEW: Type targetUrl here as optional string
 }): Promise<SendFrameNotificationResult> {
   if (!notificationDetails) {
     notificationDetails = await getUserNotificationDetails(fid);
@@ -43,7 +46,7 @@ export async function sendFrameNotification({
       notificationId: crypto.randomUUID(),
       title,
       body,
-      targetUrl: appUrl,
+      targetUrl: targetUrl || appUrl, // <--- NEW: Use the passed targetUrl, or fallback to default appUrl
       tokens: [notificationDetails.token],
     } satisfies SendNotificationRequest),
   });
