@@ -2,18 +2,16 @@
 "use client";
 
 import { sdk } from "@farcaster/frame-sdk";
-import { useNeynarContext } from "@neynar/react"; // Only useNeynarContext
+import { useNeynarContext } from "@neynar/react";
 import React, { useEffect, useState, useCallback } from "react";
 
-// Import the new layout and view components
 import MainLayout from './components/MainLayout';
 import ProfileView from './components/ProfileView';
 import JobsView from './components/JobsView';
+import JobPostForm from './components/JobPostForm'; // NEW: Import JobPostForm
 
-// Import Supabase client and types
 import { supabase } from '@/lib/supabase/client';
-// Import Card here, as it's used in this file too
-import { Card } from './components/ui/shared'; // <--- NEW: Import Card here
+import { Card } from './components/ui/shared'; // Import Card here
 
 // Define types for data from /api/auth and Supabase
 type FarcasterUserAuth = {
@@ -39,13 +37,13 @@ type AuthenticatedUserData = {
 };
 
 export default function App() {
-  const { user, isAuthenticated } = useNeynarContext(); // Neynar user context
+  const { user, isAuthenticated } = useNeynarContext();
   const [authenticatedData, setAuthenticatedData] = useState<AuthenticatedUserData | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   const supabaseClient = supabase;
 
-  const [activeView, setActiveView] = useState<'jobs' | 'profile'>('jobs'); // State to manage current view
+  const [activeView, setActiveView] = useState<'jobs' | 'profile' | 'post-job'>('jobs'); // NEW: Add 'post-job' view
 
   // Effect to tell Farcaster SDK that the app is ready to be displayed
   useEffect(() => {
@@ -61,20 +59,21 @@ export default function App() {
   // Effect to perform Quick Auth and fetch/create profile
   useEffect(() => {
     async function authenticateAndLoadProfile() {
-      setLoadingAuth(true); // Always start loading when attempting auth
+      setLoadingAuth(true);
       try {
-        // REMOVED CONDITIONAL: Always attempt Quick Auth on component mount.
-        // sdk.quickAuth.fetch will handle whether a new token is needed.
-        const res = await sdk.quickAuth.fetch('/api/auth'); // Call our backend auth route
-  
-        if (res.ok) {
-          const data: AuthenticatedUserData = await res.json();
-          setAuthenticatedData(data);
-          console.log("Quick Auth successful. User and profile data:", data);
-        } else {
-          console.error("Quick Auth failed:", res.status, await res.text());
-          // If auth fails, ensure we set authenticatedData to null and show non-auth UI
-          setAuthenticatedData(null);
+        if (user?.fid) {
+            const res = await sdk.quickAuth.fetch('/api/auth');
+
+            if (res.ok) {
+              const data: AuthenticatedUserData = await res.json();
+              setAuthenticatedData(data);
+              console.log("Quick Auth successful. User and profile data:", data);
+            } else {
+              console.error("Quick Auth failed:", res.status, await res.text());
+              setAuthenticatedData(null);
+            }
+        } else if (!isAuthenticated) {
+            setAuthenticatedData(null);
         }
       } catch (error) {
         console.error("Error during Quick Auth or profile fetch:", error);
@@ -83,9 +82,21 @@ export default function App() {
         setLoadingAuth(false);
       }
     }
-    
+
     authenticateAndLoadProfile();
-  }, [user?.fid, isAuthenticated]); // Dependencies: user.fid to re-authenticate on login/logout
+  }, [user?.fid, isAuthenticated]);
+
+  // Callback for when a job is successfully posted
+  const handleJobPosted = useCallback(() => {
+    setActiveView('jobs'); // Go back to jobs list after posting
+    alert('Your job has been posted!');
+    // Optionally, could refresh jobs list here later
+  }, []);
+
+  // Callback to cancel job posting
+  const handleCancelJobPost = useCallback(() => {
+    setActiveView('profile'); // Go back to profile view
+  }, []);
 
   // Determine content to show based on auth and loading state
   let contentToRender: React.ReactNode;
@@ -111,9 +122,18 @@ export default function App() {
           authenticatedUser={authenticatedData.user}
           supabaseProfile={authenticatedData.profile}
           onProfileUpdate={(updatedProfile) => setAuthenticatedData(prev => prev ? { ...prev, profile: updatedProfile } : null)}
+          onPostJob={() => setActiveView('post-job')} // NEW: Pass onPostJob callback
         />
       );
-    } else { // activeView === 'jobs'
+    } else if (activeView === 'post-job') { // NEW: Render JobPostForm
+      contentToRender = (
+        <JobPostForm
+          posterId={authenticatedData.profile.id}
+          onJobPosted={handleJobPosted}
+          onCancel={handleCancelJobPost}
+        />
+      );
+    } else { // activeView === 'jobs' (default)
       contentToRender = <JobsView />;
     }
   }

@@ -2,13 +2,12 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
-import Image from 'next/image'; // Keep this import
+import Image from 'next/image';
 
-import { Button, Icon, Card } from "./ui/shared"; // Reusable UI components
-import ProfileEditor from './ProfileEditor'; // Import the ProfileEditor component
-import SkillDisplay from './SkillDisplay'; // <--- NEW: Import the SkillDisplay component
+import { Button, Icon, Card } from "./ui/shared";
+import ProfileEditor from './ProfileEditor';
+import SkillDisplay from './SkillDisplay';
 
-// Define types for data passed as props
 type FarcasterUserAuth = {
   fid: number;
   username: string;
@@ -27,37 +26,35 @@ type SupabaseProfile = {
 };
 
 type ProfileViewProps = {
-  authenticatedUser: FarcasterUserAuth; // Data from Farcaster Quick Auth
-  supabaseProfile: SupabaseProfile;   // Data from Supabase profiles table
-  onProfileUpdate: (updatedProfile: SupabaseProfile) => void; // Callback for when profile is saved
+  authenticatedUser: FarcasterUserAuth;
+  supabaseProfile: SupabaseProfile;
+  onProfileUpdate: (updatedProfile: SupabaseProfile) => void;
+  onPostJob: () => void; // NEW: Callback to trigger "Post a Job" view
 };
 
-export default function ProfileView({ authenticatedUser, supabaseProfile, onProfileUpdate }: ProfileViewProps) {
-  const [showProfileEditor, setShowProfileEditor] = useState(false); // State to control ProfileEditor visibility
+export default function ProfileView({ authenticatedUser, supabaseProfile, onProfileUpdate, onPostJob }: ProfileViewProps) { // NEW: Destructure onPostJob
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
 
-  // Callback when ProfileEditor saves changes
   const handleProfileSave = useCallback((updatedProfile: SupabaseProfile) => {
-    onProfileUpdate(updatedProfile); // Pass updated profile back to parent (App component)
-    setShowProfileEditor(false); // Close the editor after save
+    onProfileUpdate(updatedProfile);
+    setShowProfileEditor(false);
   }, [onProfileUpdate]);
 
-  // Callback to cancel ProfileEditor
   const handleProfileCancel = useCallback(() => {
-    setShowProfileEditor(false); // Close the editor
+    setShowProfileEditor(false);
   }, []);
 
   return (
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
       <div className="w-full max-w-md mx-auto px-4 py-3">
-        {/* Main content area within ProfileView */}
         <main className="flex-1">
-          {showProfileEditor ? ( // Conditionally render ProfileEditor
+          {showProfileEditor ? (
             <ProfileEditor
-              userProfile={supabaseProfile} // Pass supabaseProfile to editor
+              userProfile={supabaseProfile}
               onSave={handleProfileSave}
               onCancel={handleProfileCancel}
             />
-          ) : ( // Show profile display
+          ) : (
             <Card title="Your Farlance Profile">
               <div className="space-y-4">
                 <div className="flex items-center space-x-4">
@@ -89,12 +86,11 @@ export default function ProfileView({ authenticatedUser, supabaseProfile, onProf
                   Supabase Profile ID: {supabaseProfile.id}
                 </p>
 
-                {/* Button to open ProfileEditor */}
                 <Button variant="primary" size="md" onClick={() => setShowProfileEditor(true)}>
                   Edit Profile & Skills
                 </Button>
-                {/* "Post a Job" button */}
-                <Button variant="secondary" size="md" onClick={() => alert('Post a Job functionality coming soon!')}>
+                {/* "Post a Job" button, wired to onPostJob callback */}
+                <Button variant="secondary" size="md" onClick={onPostJob}> {/* NEW: Use onPostJob here */}
                   Post a Job
                 </Button>
               </div>
