@@ -1,24 +1,19 @@
 // app/page.tsx
-"use client"; // This directive is necessary for client-side hooks and components
+"use client";
 
-// NEW: Import Farcaster SDK for quickAuth and actions.ready()
 import { sdk } from "@farcaster/frame-sdk";
+import { useNeynarContext } from "@neynar/react";
+import React, { useEffect, useState, useCallback } from "react";
 
-// REMOVED: import { NeynarAuthButton, useNeynarContext } from "@neynar/react"; // We are removing useNeynarContext
-import { NeynarAuthButton } from "@neynar/react"; // Keeping NeynarAuthButton import just in case, but it's not used in this file's logic
-
-import { useEffect, useState, useCallback } from "react";
-import { Button, Icon, Card } from "./components/ui/shared"; // Your shared UI components
-import { supabase } from '@/lib/supabase/client'; // Import the Supabase client INSTANCE
-import Image from 'next/image'; // Used for displaying Farcaster PFP
-
-// Import the new layout and view components
 import MainLayout from './components/MainLayout';
 import ProfileView from './components/ProfileView';
 import JobsView from './components/JobsView';
 import JobPostForm from './components/JobPostForm';
 
-// Define types for data received from /api/auth and your Supabase profile
+import { supabase } from '@/lib/supabase/client';
+import { Card } from './components/ui/shared';
+
+// Define types for data from /api/auth and Supabase
 type FarcasterUserAuth = {
   fid: number;
   username: string;
@@ -42,13 +37,13 @@ type AuthenticatedUserData = {
 };
 
 export default function App() {
-  // REMOVED: const { user, isAuthenticated } = useNeynarContext(); // No longer using useNeynarContext
   const [authenticatedData, setAuthenticatedData] = useState<AuthenticatedUserData | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   const supabaseClient = supabase;
 
-  const [activeView, setActiveView] = useState<'jobs' | 'profile' | 'post-job'>('jobs');
+  // UPDATED: Add 'talent' to the activeView state type
+  const [activeView, setActiveView] = useState<'jobs' | 'profile' | 'post-job' | 'talent'>('jobs'); // <--- CHANGE IS HERE
 
   // Effect to tell Farcaster SDK that the app is ready to be displayed
   useEffect(() => {
@@ -88,7 +83,7 @@ export default function App() {
     }
 
     authenticateAndLoadProfile();
-  }, []); // Empty dependency array: runs once on component mount
+  }, []);
 
 
   // Callback for when a job is successfully posted
@@ -111,7 +106,7 @@ export default function App() {
         <p className="text-[var(--app-foreground-muted)]">Please wait while we connect your Farcaster identity.</p>
       </Card>
     );
-  } else if (!authenticatedData) { // Now relies solely on authenticatedData for auth status
+  } else if (!authenticatedData) {
     contentToRender = (
       <Card title="Welcome to Farlance">
         <p className="text-[var(--app-foreground-muted)] mb-4">
@@ -137,6 +132,12 @@ export default function App() {
           onCancel={handleCancelJobPost}
         />
       );
+    } else if (activeView === 'talent') { // NEW: Placeholder for TalentView
+      contentToRender = (
+        <Card title="Find Talent">
+          <p className="text-[var(--app-foreground-muted)]">Talent listings and filters coming soon!</p>
+        </Card>
+      );
     } else { // activeView === 'jobs' (default)
       contentToRender = <JobsView />;
     }
@@ -146,7 +147,7 @@ export default function App() {
     <MainLayout
       activeView={activeView}
       setActiveView={setActiveView}
-      authenticatedUser={authenticatedData?.user || null} // Pass authenticatedUser data for header
+      authenticatedUser={authenticatedData?.user || null}
     >
       {contentToRender}
     </MainLayout>

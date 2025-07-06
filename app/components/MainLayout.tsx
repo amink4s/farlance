@@ -7,24 +7,22 @@ import { Button, Icon } from './ui/shared';
 
 type MainLayoutProps = {
   children: React.ReactNode;
-  activeView: 'jobs' | 'profile' | 'post-job';
-  setActiveView: (view: 'jobs' | 'profile' | 'post-job') => void;
+  activeView: 'jobs' | 'profile' | 'post-job' | 'talent'; // <--- UPDATED TYPE HERE: Added 'talent'
+  setActiveView: (view: 'jobs' | 'profile' | 'post-job' | 'talent') => void; // <--- UPDATED TYPE HERE
   authenticatedUser: { pfp_url?: string; display_name?: string; username?: string } | null;
 };
 
 export default function MainLayout({ children, activeView, setActiveView, authenticatedUser }: MainLayoutProps) {
-  // Header content based on whether we have successful `authenticatedUser` data
   const headerContent = authenticatedUser ? (
-    // Make the entire div clickable to switch to profile view
     <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setActiveView('profile')}>
       {authenticatedUser.pfp_url && (
         <Image
           src={authenticatedUser.pfp_url}
           alt="Profile Picture"
-          width={32} // Smaller for header
+          width={32}
           height={32}
           className="rounded-full"
-          unoptimized={true} // Keep unoptimized for now
+          unoptimized={true}
         />
       )}
       <span className="text-md font-semibold text-[var(--app-foreground)]">
@@ -32,7 +30,6 @@ export default function MainLayout({ children, activeView, setActiveView, authen
       </span>
     </div>
   ) : (
-    // Show a generic title if user data is not yet available (loading or unauthenticated)
     <span className="text-md font-semibold text-[var(--app-foreground-muted)]">
       Farlance
     </span>
@@ -42,14 +39,12 @@ export default function MainLayout({ children, activeView, setActiveView, authen
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
       <div className="w-full max-w-md mx-auto px-4 py-3">
         <header className="flex justify-between items-center mb-3 h-11">
-          {/* Left side of header: App name or authenticated user info */}
           <div>
             {headerContent}
           </div>
 
-          {/* Right side of header: Navigation buttons if authenticated, or empty if not */}
           <div className="flex items-center space-x-2">
-            {authenticatedUser ? ( // Only show navigation if authenticatedUser data is available
+            {authenticatedUser ? (
               <>
                 <Button
                   variant={activeView === 'jobs' ? 'primary' : 'ghost'}
@@ -58,25 +53,16 @@ export default function MainLayout({ children, activeView, setActiveView, authen
                 >
                   Jobs
                 </Button>
-                {/* REMOVED: Profile button is no longer needed as header PFP/Name is clickable */}
-                {/* <Button
-                  variant={activeView === 'profile' ? 'primary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveView('profile')}
-                >
-                  Profile
-                </Button> */}
-                {/* NEW: Placeholder for "Find Talent" button here */}
+                {/* Find Talent button placeholder */}
                 <Button
-                  variant={activeView === 'talent' ? 'primary' : 'ghost'} // Future 'talent' view
+                  variant={activeView === 'talent' ? 'primary' : 'ghost'} // Now 'talent' is a valid type
                   size="sm"
-                  onClick={() => alert('Find Talent functionality coming soon!')} // Will be setActiveView('talent') later
+                  onClick={() => alert('Find Talent functionality coming soon!')}
                 >
                   Find Talent
                 </Button>
               </>
             ) : (
-              // If not authenticated, show nothing in the right header
               null
             )}
           </div>
