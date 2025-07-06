@@ -4,7 +4,10 @@
 // NEW: Import Farcaster SDK for quickAuth and actions.ready()
 import { sdk } from "@farcaster/frame-sdk";
 
-import { useEffect, useState, useCallback } from "react"; // Removed useMemo as it's not strictly needed here for now
+// REMOVED: import { NeynarAuthButton, useNeynarContext } from "@neynar/react"; // We are removing useNeynarContext
+import { NeynarAuthButton } from "@neynar/react"; // Keeping NeynarAuthButton import just in case, but it's not used in this file's logic
+
+import { useEffect, useState, useCallback } from "react";
 import { Button, Icon, Card } from "./components/ui/shared"; // Your shared UI components
 import { supabase } from '@/lib/supabase/client'; // Import the Supabase client INSTANCE
 import Image from 'next/image'; // Used for displaying Farcaster PFP
@@ -24,8 +27,8 @@ type FarcasterUserAuth = {
 };
 
 type SupabaseProfile = {
-  id: string; // UUID from Supabase
-  fid: number; // Farcaster ID
+  id: string;
+  fid: number;
   username?: string | null;
   display_name?: string | null;
   bio?: string | null;
@@ -39,17 +42,13 @@ type AuthenticatedUserData = {
 };
 
 export default function App() {
-  // `user` from useNeynarContext might not be immediately populated.
-  // We primarily rely on `sdk.quickAuth.fetch` for `authenticatedData`.
-  // Keeping `useNeynarContext` for `isAuthenticated` if needed for overall session.
-  const { user, isAuthenticated } = useNeynarContext();
-
+  // REMOVED: const { user, isAuthenticated } = useNeynarContext(); // No longer using useNeynarContext
   const [authenticatedData, setAuthenticatedData] = useState<AuthenticatedUserData | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   const supabaseClient = supabase;
 
-  const [activeView, setActiveView] = useState<'jobs' | 'profile' | 'post-job'>('jobs'); // State to manage current view
+  const [activeView, setActiveView] = useState<'jobs' | 'profile' | 'post-job'>('jobs');
 
   // Effect to tell Farcaster SDK that the app is ready to be displayed
   useEffect(() => {
@@ -60,19 +59,17 @@ export default function App() {
       }
     };
     signalReady();
-  }, []); // Run once on mount
+  }, []);
 
   // Effect to perform Quick Auth and fetch/create profile
   useEffect(() => {
     async function authenticateAndLoadProfile() {
-      setLoadingAuth(true); // Always start loading when attempting auth
+      setLoadingAuth(true);
       try {
-        // Attempt Quick Auth unconditionally on component mount.
-        // sdk.quickAuth.fetch will handle whether a new token is needed.
-        const res = await sdk.quickAuth.fetch('/api/auth'); // Call our backend auth route
+        const res = await sdk.quickAuth.fetch('/api/auth');
 
-        console.log("Quick Auth Fetch Raw Response:", res); // <--- DEBUG LOG
-        console.log("Quick Auth Fetch res.ok:", res.ok);     // <--- DEBUG LOG
+        console.log("Quick Auth Fetch Raw Response:", res);
+        console.log("Quick Auth Fetch res.ok:", res.ok);
 
         if (res.ok) {
           const data: AuthenticatedUserData = await res.json();
@@ -80,7 +77,6 @@ export default function App() {
           console.log("Quick Auth successful. User and profile data:", data);
         } else {
           console.error("Quick Auth failed:", res.status, await res.text());
-          // If auth fails, ensure we set authenticatedData to null and show non-auth UI
           setAuthenticatedData(null);
         }
       } catch (error) {
@@ -91,21 +87,19 @@ export default function App() {
       }
     }
 
-    // Trigger auth process when component mounts
     authenticateAndLoadProfile();
   }, []); // Empty dependency array: runs once on component mount
 
 
   // Callback for when a job is successfully posted
   const handleJobPosted = useCallback(() => {
-    setActiveView('jobs'); // Go back to jobs list after posting
+    setActiveView('jobs');
     alert('Your job has been posted!');
-    // Optionally, could refresh jobs list here later
   }, []);
 
   // Callback to cancel job posting
   const handleCancelJobPost = useCallback(() => {
-    setActiveView('profile'); // Go back to profile view
+    setActiveView('profile');
   }, []);
 
   // Determine content to show based on auth and loading state
@@ -117,7 +111,7 @@ export default function App() {
         <p className="text-[var(--app-foreground-muted)]">Please wait while we connect your Farcaster identity.</p>
       </Card>
     );
-  } else if (!authenticatedData) {
+  } else if (!authenticatedData) { // Now relies solely on authenticatedData for auth status
     contentToRender = (
       <Card title="Welcome to Farlance">
         <p className="text-[var(--app-foreground-muted)] mb-4">
@@ -135,7 +129,7 @@ export default function App() {
           onPostJob={() => setActiveView('post-job')}
         />
       );
-    } else if (activeView === 'post-job') { // Render JobPostForm
+    } else if (activeView === 'post-job') {
       contentToRender = (
         <JobPostForm
           posterId={authenticatedData.profile.id}
@@ -148,12 +142,11 @@ export default function App() {
     }
   }
 
-  // MainLayout will wrap all the content and provide the header/footer/navigation
   return (
     <MainLayout
       activeView={activeView}
       setActiveView={setActiveView}
-      authenticatedUser={authenticatedData?.user || null}
+      authenticatedUser={authenticatedData?.user || null} // Pass authenticatedUser data for header
     >
       {contentToRender}
     </MainLayout>

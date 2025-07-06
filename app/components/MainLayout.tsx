@@ -2,22 +2,22 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
-import { NeynarAuthButton, useNeynarContext } from "@neynar/react";
+// REMOVED: import { NeynarAuthButton, useNeynarContext } from "@neynar/react"; // Removing useNeynarContext and NeynarAuthButton import
 import Image from 'next/image';
 import { Button, Icon } from './ui/shared';
 
-// Props for MainLayout
 type MainLayoutProps = {
   children: React.ReactNode;
-  activeView: 'jobs' | 'profile' | 'post-job'; // <--- UPDATED TYPE HERE
-  setActiveView: (view: 'jobs' | 'profile' | 'post-job') => void; // <--- UPDATED TYPE HERE
+  activeView: 'jobs' | 'profile' | 'post-job';
+  setActiveView: (view: 'jobs' | 'profile' | 'post-job') => void;
   authenticatedUser: { pfp_url?: string; display_name?: string; username?: string } | null;
 };
 
 export default function MainLayout({ children, activeView, setActiveView, authenticatedUser }: MainLayoutProps) {
-  const { isAuthenticated } = useNeynarContext();
+  // REMOVED: const { isAuthenticated } = useNeynarContext(); // No longer using useNeynarContext. Relies on authenticatedUser prop.
 
-  const headerContent = authenticatedUser ? (
+  // Header content based on whether we have successful `authenticatedUser` data
+  const headerContent = authenticatedUser ? ( // If authenticatedUser is not null, display user info
     <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setActiveView('profile')}>
       {authenticatedUser.pfp_url && (
         <Image
@@ -34,6 +34,7 @@ export default function MainLayout({ children, activeView, setActiveView, authen
       </span>
     </div>
   ) : (
+    // Show a generic title if user data is not yet available (loading or unauthenticated)
     <span className="text-md font-semibold text-[var(--app-foreground-muted)]">
       Farlance
     </span>
@@ -43,12 +44,14 @@ export default function MainLayout({ children, activeView, setActiveView, authen
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
       <div className="w-full max-w-md mx-auto px-4 py-3">
         <header className="flex justify-between items-center mb-3 h-11">
+          {/* Left side of header: App name or authenticated user info */}
           <div>
             {headerContent}
           </div>
 
+          {/* Right side of header: Navigation buttons if authenticated, or empty if not */}
           <div className="flex items-center space-x-2">
-            {isAuthenticated && (
+            {authenticatedUser ? ( // Only show navigation if authenticatedUser data is available
               <>
                 <Button
                   variant={activeView === 'jobs' ? 'primary' : 'ghost'}
@@ -64,8 +67,10 @@ export default function MainLayout({ children, activeView, setActiveView, authen
                 >
                   Profile
                 </Button>
-                {/* No direct "Post a Job" button in header here, it's on the ProfileView */}
               </>
+            ) : (
+              // If not authenticated, show nothing in the right header (NeynarAuthButton is removed)
+              null
             )}
           </div>
         </header>
