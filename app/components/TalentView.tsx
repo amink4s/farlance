@@ -1,10 +1,12 @@
 // components/TalentView.tsx
 "use client";
 
-import React, { useState, useEffect, ChangeEvent, useMemo } from 'react'; // NEW: Added useMemo
-import { Card, Button } from './ui/shared';
+import React, { useState, useEffect, ChangeEvent, useMemo } from 'react';
+import { Card } from './ui/shared';
 import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
+import Modal from './ui/Modal'; // NEW: Import Modal
+import TalentDetails from './TalentDetails'; // NEW: Import TalentDetails
 
 // Define types for Profile and Skill (for displaying talent)
 type Profile = {
@@ -27,10 +29,14 @@ type Skill = {
 
 export default function TalentView() {
   const [loadingTalent, setLoadingTalent] = useState(true);
-  const [allTalent, setAllTalent] = useState<Profile[]>([]); // Stores all talent, pre-filtered by having *any* skill
-  const [allSkills, setAllSkills] = useState<Skill[]>([]); // For filter dropdown
-  const [searchQuery, setSearchQuery] = useState(''); // For searching by name/bio
+  const [allTalent, setAllTalent] = useState<Profile[]>([]);
+  const [allSkills, setAllSkills] = useState<Skill[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [filterSkillId, setFilterSkillId] = useState<string | null>(null);
+
+  // NEW: State for Talent Details Modal
+  const [isTalentDetailsModalOpen, setIsTalentDetailsModalOpen] = useState(false);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
 
   const supabaseClient = supabase;
 
@@ -57,21 +63,15 @@ export default function TalentView() {
         }
 
         // Build the talent query: Select profiles that have AT LEAST ONE skill
-        // Use user_skills!inner to only get profiles that have any skills associated
         let query = supabaseClient
           .from('profiles')
-          .select('*, user_skills!inner(skills(id, name))') // Always fetch all skills for filtered users
-          .order('created_at', { ascending: false }); // Show newest profiles first
+          .select('*, user_skills!inner(skills(id, name))') // Use inner join to only get profiles that have any skills associated
+          .order('created_at', { ascending: false });
 
         // Apply search query filter (by username or display name or bio)
         if (searchQuery) {
           query = query.or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%,bio.ilike.%${searchQuery}%`);
         }
-
-        // No filtering by skill here on the backend, we will do it client-side for display
-        // if (filterSkillId) {
-        //   query = query.filter('user_skills.skill_id', 'eq', filterSkillId);
-        // }
 
         const { data: talentData, error: talentError } = await query;
 
@@ -80,7 +80,7 @@ export default function TalentView() {
           return;
         }
 
-        setAllTalent(talentData || []); // Store all fetched talent (who have at least one skill)
+        setAllTalent(talentData || []);
 
       } catch (error) {
         console.error("Unhandled error in TalentView:", error);
@@ -90,7 +90,7 @@ export default function TalentView() {
     }
 
     fetchTalentAndSkills();
-  }, [supabaseClient, searchQuery, allSkills.length]); // filterSkillId removed from dependencies, as it's client-side filtered
+  }, [supabaseClient, searchQuery, allSkills.length]);
 
   // Handle search input
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -108,18 +108,35 @@ export default function TalentView() {
       return allTalent; // No skill filter applied
     }
 
-    // Filter profiles if they have the selected skill in their user_skills array
     return allTalent.filter(profile =>
       profile.user_skills?.some(us => us.skills.id === filterSkillId)
     );
   }, [allTalent, filterSkillId]);
 
+  // NEW: Open Talent Details Modal
+  const openTalentDetailsModal = (profileId: string) => {
+    setSelectedProfileId(profileId);
+    setIsTalentDetailsModalOpen(true);
+  };
+
+  // NEW: Close Talent Details Modal
+  const closeTalentDetailsModal = () => {
+    setIsTalentDetailsModalOpen(false);
+    setSelectedProfileId(null);
+  };
+
 
   if (loadingTalent) {
     return (
-      <Card title="Loading Talent...">
-        <p className="text-[var(--app-foreground-muted)]">Finding Farcasters with skills...</p>
-      </Card>
+      <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
+        <div className="w-full max-w-md mx-auto px-4 py-3">
+          <main className="flex-1">
+            <Card title="Loading Talent...">
+              <p className="text-[var(--app-foreground-muted)]">Finding Farcasters with skills...</p>
+            </Card>
+          </main>
+        </div>
+      </div>
     );
   }
 
@@ -151,14 +168,14 @@ export default function TalentView() {
               </select>
             </div>
 
-            {filteredTalent.length === 0 ? ( // Use filteredTalent for display
+            {filteredTalent.length === 0 ? (
               <p className="text-[var(--app-foreground-muted)]">
                 No talent profiles found matching your criteria.
               </p>
             ) : (
               <div className="space-y-4">
-                {filteredTalent.map(profile => ( // Use filteredTalent for map
-                  <Card key={profile.id} className="cursor-pointer" onClick={() => alert(`View Talent: ${profile.display_name || profile.username}`)}>
+                {filteredTalent.map(profile => (
+                  <Card key={profile.id} className="cursor-pointer" onClick={() => openTalentDetailsModal(profile.id)}> {/* NEW: onClick handler */}
                     <div className="flex items-center space-x-4">
                       {profile.pfp_url && (
                         <Image
@@ -196,6 +213,13 @@ export default function TalentView() {
           </Card>
         </main>
       </div>
+
+      {/* NEW: Talent Details Modal */}
+      {isTalentDetailsModalOpen && selectedProfileId && (
+        <Modal isOpen={isTalentDetailsModalOpen} onClose={closeTalentDetailsModal}>
+          <TalentDetails profileId={selectedProfileId} onClose={closeTalentDetailsModal} />
+        </Modal>
+      )}
     </div>
   );
 }
