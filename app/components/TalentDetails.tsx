@@ -2,11 +2,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Button, Card } from './ui/shared'; // Using Card and Button from shared UI
-import { supabase } from '@/lib/supabase/client'; // Client-side Supabase client
-import Image from 'next/image'; // For PFP display
+import { Button, Card } from './ui/shared';
+import { supabase } from '@/lib/supabase/client';
+import Image from 'next/image';
 
-// Define Profile type consistent with how it's fetched (including nested skills)
 type Profile = {
   id: string;
   fid: number;
@@ -16,13 +15,12 @@ type Profile = {
   contact_info?: string | null;
   created_at: string;
   pfp_url?: string | null;
-  // Joined skills will be nested like: user_skills: [{ skills: { id: string, name: string } }]
   user_skills?: { skills: { id: string; name: string } }[];
 };
 
 type TalentDetailsProps = {
-  profileId: string; // The Supabase profile ID of the talent
-  onClose: () => void; // Callback to close the modal
+  profileId: string;
+  onClose: () => void;
 };
 
 export default function TalentDetails({ profileId, onClose }: TalentDetailsProps) {
@@ -39,10 +37,9 @@ export default function TalentDetails({ profileId, onClose }: TalentDetailsProps
       }
       setLoading(true);
       try {
-        // Fetch profile details, joining user_skills and skills tables
         const { data: profileData, error: profileError } = await supabaseClient
           .from('profiles')
-          .select('*, user_skills(skills(id, name))') // Select all profile fields and joined skills
+          .select('*, user_skills(skills(id, name))')
           .eq('id', profileId)
           .single();
 
@@ -60,10 +57,10 @@ export default function TalentDetails({ profileId, onClose }: TalentDetailsProps
       }
     }
 
-    if (profileId) { // Only fetch if profileId is provided
+    if (profileId) {
       fetchTalentDetails();
     }
-  }, [profileId, supabaseClient]); // Re-fetch if profileId changes or supabase client changes
+  }, [profileId, supabaseClient]);
 
   if (loading) {
     return (
