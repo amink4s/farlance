@@ -1,10 +1,10 @@
 // app/layout.tsx
 import "./theme.css";
-import "@coinbase/onchainkit/styles.css"; // Keep this if it's for general theme
+import "@coinbase/onchainkit/styles.css";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
-import { Suspense } from "react"; // NEW: Import Suspense
+import { Suspense } from "react";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -44,10 +44,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // Add 'dark' class to the html tag to force dark mode
+    <html lang="en" className="dark"> {/* <--- CHANGED HERE */}
       <body className="bg-background">
-        {/* Wrap Providers (and thus all page content) in Suspense */}
-        <Suspense fallback={<div>Loading Farlance...</div>}> {/* NEW: Suspense boundary here */}
+        <Suspense fallback={<div>Loading Farlance...</div>}>
           <Providers>{children}</Providers>
         </Suspense>
       </body>
