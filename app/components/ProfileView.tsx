@@ -23,17 +23,17 @@ type SupabaseProfile = {
   bio?: string | null;
   contact_info?: string | null;
   created_at: string;
-  pfp_url?: string | null; 
+  pfp_url?: string | null;
 };
 
 type ProfileViewProps = {
   authenticatedUser: FarcasterUserAuth;
   supabaseProfile: SupabaseProfile;
   onProfileUpdate: (updatedProfile: SupabaseProfile) => void;
-  onPostJob: () => void; // NEW: Callback to trigger "Post a Job" view
+  onPostJob: () => void;
 };
 
-export default function ProfileView({ authenticatedUser, supabaseProfile, onProfileUpdate, onPostJob }: ProfileViewProps) { // NEW: Destructure onPostJob
+export default function ProfileView({ authenticatedUser, supabaseProfile, onProfileUpdate, onPostJob }: ProfileViewProps) {
   const [showProfileEditor, setShowProfileEditor] = useState(false);
 
   const handleProfileSave = useCallback((updatedProfile: SupabaseProfile) => {
@@ -83,15 +83,15 @@ export default function ProfileView({ authenticatedUser, supabaseProfile, onProf
                     Contact: {supabaseProfile.contact_info}
                   </p>
                 )}
-                <p className="text-[var(--app-foreground-muted)] text-xs">
+                {/* REMOVED: Supabase Profile ID display */}
+                {/* <p className="text-[var(--app-foreground-muted)] text-xs">
                   Supabase Profile ID: {supabaseProfile.id}
-                </p>
+                </p> */}
 
                 <Button variant="primary" size="md" onClick={() => setShowProfileEditor(true)}>
                   Edit Profile & Skills
                 </Button>
-                {/* "Post a Job" button, wired to onPostJob callback */}
-                <Button variant="secondary" size="md" onClick={onPostJob}> {/* NEW: Use onPostJob here */}
+                <Button variant="secondary" size="md" onClick={onPostJob}>
                   Post a Job
                 </Button>
               </div>
