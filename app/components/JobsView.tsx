@@ -4,10 +4,11 @@
 import React, { useState, useEffect, ChangeEvent, useMemo } from 'react';
 import { Card } from './ui/shared';
 import { supabase } from '@/lib/supabase/client';
-import Modal from './ui/Modal'; // NEW: Import Modal
-import JobDetails from './JobDetails'; // NEW: Import JobDetails
+import Modal from './ui/Modal';
+import JobDetails from './JobDetails';
+import Image from 'next/image'; // NEW: Import Image for poster PFP
 
-// Define Job type consistent with how it's fetched (including nested skills)
+// Define Job type consistent with how it's fetched (including nested skills and poster profile)
 type Job = {
   id: string;
   poster_id: string;
@@ -19,6 +20,13 @@ type Job = {
   status: string;
   created_at: string; // ISO string format
   job_skills?: { skill_id: string; skills: { name: string } }[]; // Nested skills
+  profiles?: { // NEW: Nested poster profile data
+    id: string;
+    fid: number;
+    username: string;
+    display_name: string;
+    pfp_url?: string | null;
+  } | null; // Nullable in case profile is not found or relation is left joined
 };
 
 type Skill = {
@@ -33,7 +41,7 @@ export default function JobsView() {
   const [searchQuery, setSearchQuery] = useState(''); // For searching by title/description
   const [filterSkillId, setFilterSkillId] = useState<string | null>(null);
 
-  // NEW: State for Job Details Modal
+  // State for Job Details Modal
   const [isJobDetailsModalOpen, setIsJobDetailsModalOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
@@ -61,13 +69,13 @@ export default function JobsView() {
           }
         }
 
-        // Fetch jobs, joining job_skills and skills tables
+        // Fetch jobs, joining job_skills and skills tables, AND poster's profiles
         let query = supabaseClient
           .from('jobs')
           .select(
-            filterSkillId // If filtering by skill
-              ? `*, job_skills!inner(skill_id, skills(name))` // Use inner join on job_skills
-              : `*, job_skills(skill_id, skills(name))`        // Else, keep default (outer) join
+            filterSkillId
+              ? `*, job_skills!inner(skill_id, skills(name)), profiles(id, fid, username, display_name, pfp_url)` // <--- UPDATED HERE
+              : `*, job_skills(skill_id, skills(name)), profiles(id, fid, username, display_name, pfp_url)`        // <--- UPDATED HERE
           )
           .eq('status', 'open') // Only show open jobs
           .order('created_at', { ascending: false }); // Show newest jobs first
@@ -99,7 +107,7 @@ export default function JobsView() {
     }
 
     fetchJobsAndSkills();
-  }, [supabaseClient, searchQuery, filterSkillId, allSkills.length]); // Re-run when filters or skills change
+  }, [supabaseClient, searchQuery, filterSkillId, allSkills.length]);
 
   // Handle search input
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -111,13 +119,13 @@ export default function JobsView() {
     setFilterSkillId(e.target.value === '' ? null : e.target.value);
   };
 
-  // NEW: Open Job Details Modal
+  // Open Job Details Modal
   const openJobDetailsModal = (jobId: string) => {
     setSelectedJobId(jobId);
     setIsJobDetailsModalOpen(true);
   };
 
-  // NEW: Close Job Details Modal
+  // Close Job Details Modal
   const closeJobDetailsModal = () => {
     setIsJobDetailsModalOpen(false);
     setSelectedJobId(null);
@@ -169,6 +177,24 @@ export default function JobsView() {
                 {allJobs.map(job => (
                   <Card key={job.id} className="cursor-pointer" onClick={() => openJobDetailsModal(job.id)}>
                     <h3 className="text-lg font-semibold text-[var(--app-foreground)]">{job.title}</h3>
+                    {/* NEW: Display Poster's PFP and Username */}
+                    {job.profiles && (
+                      <div className="flex items-center space-x-2 mt-2">
+                        {job.profiles.pfp_url && (
+                          <Image
+                            src={job.profiles.pfp_url}
+                            alt={`${job.profiles.display_name || job.profiles.username}'s PFP`}
+                            width={24}
+                            height={24}
+                            className="rounded-full"
+                            unoptimized={true}
+                          />
+                        )}
+                        <span className="text-[var(--app-foreground-muted)] text-sm">
+                          Posted by @{job.profiles.username || job.profiles.display_name || 'N/A'}
+                        </span>
+                      </div>
+                    )}
                     <p className="text-[var(--app-foreground-muted)] text-sm mt-1">
                       {job.description.substring(0, 100)}...
                     </p>
@@ -184,6 +210,9 @@ export default function JobsView() {
                         </span>
                       ))}
                     </div>
+                    <p className="text-[var(--app-foreground-muted)] text-xs mt-2">
+                      Posted: {new Date(job.created_at).toLocaleDateString()}
+                    </p>
                   </Card>
                 ))}
               </div>

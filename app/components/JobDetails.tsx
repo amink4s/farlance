@@ -2,10 +2,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card, Button } from './ui/shared'; // Using Card and Button from shared UI
-import { supabase } from '@/lib/supabase/client'; // Client-side Supabase client
+import { Card, Button } from './ui/shared';
+import { supabase } from '@/lib/supabase/client';
+import Image from 'next/image'; // NEW: Import Image for poster PFP
 
-// Define Job type consistent with how it's fetched (including nested skills)
+// Define Job type consistent with how it's fetched (including nested skills and poster profile)
 type Job = {
   id: string;
   poster_id: string;
@@ -17,6 +18,13 @@ type Job = {
   status: string;
   created_at: string;
   job_skills?: { skill_id: string; skills: { name: string } }[];
+  profiles?: { // NEW: Nested poster profile data
+    id: string;
+    fid: number;
+    username: string;
+    display_name: string;
+    pfp_url?: string | null;
+  } | null;
 };
 
 type JobDetailsProps = {
@@ -40,14 +48,13 @@ export default function JobDetails({ jobId, onClose }: JobDetailsProps) {
       try {
         const { data: jobData, error: jobError } = await supabaseClient
           .from('jobs')
-          .select('*, job_skills(skills(name))') // Select all job fields and joined skills
+          .select('*, job_skills(skills(name)), profiles(id, fid, username, display_name, pfp_url)') // <--- UPDATED HERE
           .eq('id', jobId)
           .single();
 
         if (jobError) {
           console.error("Error fetching job details:", jobError);
           setJob(null);
-          // Optionally alert user or show error message
         } else {
           setJob(jobData);
         }
@@ -59,10 +66,10 @@ export default function JobDetails({ jobId, onClose }: JobDetailsProps) {
       }
     }
 
-    if (jobId) { // Only fetch if jobId is provided
+    if (jobId) {
       fetchJobDetails();
     }
-  }, [jobId, supabaseClient]); // Re-fetch if jobId changes or supabase client changes
+  }, [jobId, supabaseClient]);
 
   if (loading) {
     return (
@@ -84,6 +91,25 @@ export default function JobDetails({ jobId, onClose }: JobDetailsProps) {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-[var(--app-foreground)]">{job.title}</h2>
+      {/* NEW: Display Poster's PFP and Username */}
+      {job.profiles && (
+        <div className="flex items-center space-x-2 mt-2">
+          {job.profiles.pfp_url && (
+            <Image
+              src={job.profiles.pfp_url}
+              alt={`${job.profiles.display_name || job.profiles.username}'s PFP`}
+              width={32}
+              height={32}
+              className="rounded-full"
+              unoptimized={true}
+            />
+          )}
+          <span className="text-[var(--app-foreground-muted)] text-md">
+            Posted by @{job.profiles.username || job.profiles.display_name || 'N/A'}
+          </span>
+          {/* Optionally, add a click handler to open the poster's profile modal */}
+        </div>
+      )}
       <p className="text-[var(--app-foreground-muted)] text-md whitespace-pre-wrap">{job.description}</p>
 
       {job.budget_amount && (
