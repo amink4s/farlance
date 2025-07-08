@@ -50,7 +50,7 @@ export default function ProfileView({ authenticatedUser, supabaseProfile, onProf
   const handleShareProfileToFarcaster = useCallback(async () => {
     try {
       const appUrl = process.env.NEXT_PUBLIC_URL!; // Get app URL from env
-      const castText = `I just updated my Farlance profile as @${authenticatedUser.username || authenticatedUser.display_name}. Find top talent or post jobs for Farcaster freelancers! 🚀 #Farlance`;
+      const castText = `I just updated my Farlance profile as @${authenticatedUser.username || authenticatedUser.display_name}. Find top talent or post jobs for Farcaster freelancers! 🚀 `;
       const castUrl = appUrl;
 
       await sdk.actions.composeCast({
