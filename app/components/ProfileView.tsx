@@ -29,6 +29,8 @@ type SupabaseProfile = {
 type ProfileViewProps = {
   authenticatedUser: FarcasterUserAuth;
   supabaseProfile: SupabaseProfile;
+  // NEW: onProfileUpdate now takes a direct SupabaseProfile, as it's the updated profile
+  // and it will trigger the handleProfileSavedForShare in page.tsx
   onProfileUpdate: (updatedProfile: SupabaseProfile) => void;
   onPostJob: () => void;
 };
@@ -36,8 +38,10 @@ type ProfileViewProps = {
 export default function ProfileView({ authenticatedUser, supabaseProfile, onProfileUpdate, onPostJob }: ProfileViewProps) {
   const [showProfileEditor, setShowProfileEditor] = useState(false);
 
+  // This handleProfileSave now just passes the updatedProfile directly up to onProfileUpdate
+  // (which is handleProfileSavedForShare in page.tsx)
   const handleProfileSave = useCallback((updatedProfile: SupabaseProfile) => {
-    onProfileUpdate(updatedProfile);
+    onProfileUpdate(updatedProfile); // Pass updated profile directly
     setShowProfileEditor(false);
   }, [onProfileUpdate]);
 
@@ -52,7 +56,7 @@ export default function ProfileView({ authenticatedUser, supabaseProfile, onProf
           {showProfileEditor ? (
             <ProfileEditor
               userProfile={supabaseProfile}
-              onSave={handleProfileSave}
+              onSave={handleProfileSave} // This will trigger handleProfileSavedForShare in page.tsx
               onCancel={handleProfileCancel}
             />
           ) : (
@@ -83,10 +87,9 @@ export default function ProfileView({ authenticatedUser, supabaseProfile, onProf
                     Contact: {supabaseProfile.contact_info}
                   </p>
                 )}
-                {/* REMOVED: Supabase Profile ID display */}
-                {/* <p className="text-[var(--app-foreground-muted)] text-xs">
-                  Supabase Profile ID: {supabaseProfile.id}
-                </p> */}
+                <p className="text-[var(--app-foreground-muted)] text-xs">
+                  {/* Removed Supabase Profile ID display */}
+                </p>
 
                 <Button variant="primary" size="md" onClick={() => setShowProfileEditor(true)}>
                   Edit Profile & Skills

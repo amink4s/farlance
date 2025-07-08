@@ -2,7 +2,7 @@
 "use client";
 
 import { sdk } from "@farcaster/frame-sdk";
-import React, { useEffect, useState, useCallback } from "react"; // NEW: Import Suspense
+import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from 'next/navigation';
 
 import MainLayout from './components/MainLayout';
@@ -11,7 +11,8 @@ import JobsView from './components/JobsView';
 import JobPostForm from './components/JobPostForm';
 import TalentView from './components/TalentView';
 import JobDetails from './components/JobDetails';
-import Modal from './components/ui/Modal';
+import Modal from './components/ui/Modal'; // Ensure Modal is imported
+import ShareProfileModal from './components/ShareProfileModal'; // NEW: Import ShareProfileModal
 
 import { supabase } from '@/lib/supabase/client';
 import { Card } from './components/ui/shared';
@@ -32,6 +33,7 @@ type SupabaseProfile = {
   bio?: string | null;
   contact_info?: string | null;
   created_at: string;
+  pfp_url?: string | null;
 };
 
 type AuthenticatedUserData = {
@@ -51,6 +53,9 @@ export default function App() {
   const [isJobDetailsModalOpen, setIsJobDetailsModalOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [initialJobIdFromUrl, setInitialJobIdFromUrl] = useState<string | null>(null);
+
+  // NEW: State for Share Profile Modal
+  const [isShareProfileModalOpen, setIsShareProfileModalOpen] = useState(false);
 
   const searchParams = useSearchParams();
 
@@ -95,7 +100,6 @@ export default function App() {
   }, []);
 
   // Effect to read jobId from URL on initial load and open modal
-  // This useEffect uses useSearchParams, so its parent (App component's JSX) needs Suspense.
   useEffect(() => {
     const jobIdParam = searchParams.get('jobId');
     if (jobIdParam && !initialJobIdFromUrl) {
@@ -127,6 +131,19 @@ export default function App() {
     window.history.replaceState({}, '', newUrl.toString());
   }, []);
 
+  // NEW: Callback for when profile is saved, to trigger share modal
+  const handleProfileSavedForShare = useCallback((updatedProfile: SupabaseProfile) => {
+    // This will be called from ProfileEditor via ProfileView
+    // Update main authenticatedData with the new profile
+    setAuthenticatedData(prev => prev ? { ...prev, profile: updatedProfile } : null);
+    setIsShareProfileModalOpen(true); // Open the share modal
+  }, []);
+
+  // NEW: Close Share Profile Modal
+  const closeShareProfileModal = useCallback(() => {
+    setIsShareProfileModalOpen(false);
+  }, []);
+
 
   // Determine content to show based on auth and loading state
   let contentToRender: React.ReactNode;
@@ -151,7 +168,7 @@ export default function App() {
         <ProfileView
           authenticatedUser={authenticatedData.user}
           supabaseProfile={authenticatedData.profile}
-          onProfileUpdate={(updatedProfile) => setAuthenticatedData(prev => prev ? { ...prev, profile: updatedProfile } : null)}
+          onProfileUpdate={handleProfileSavedForShare} // NEW: Use handleProfileSavedForShare
           onPostJob={() => setActiveView('post-job')}
         />
       );
@@ -172,7 +189,7 @@ export default function App() {
   }
 
   return (
-    // Wrap MainLayout in Suspense because useSearchParams is a client-only hook
+    <Suspense fallback={<div>Loading app...</div>}>
       <MainLayout
         activeView={activeView}
         setActiveView={setActiveView}
@@ -186,6 +203,18 @@ export default function App() {
             <JobDetails jobId={selectedJobId} onClose={closeJobDetailsModal} />
           </Modal>
         )}
+
+        {/* NEW: Share Profile Modal */}
+        {isShareProfileModalOpen && authenticatedData?.user.username && (
+          <Modal isOpen={isShareProfileModalOpen} onClose={closeShareProfileModal}>
+            <ShareProfileModal
+              username={authenticatedData.user.username}
+              appUrl={process.env.NEXT_PUBLIC_URL!} // Pass app URL for cast
+              onClose={closeShareProfileModal}
+            />
+          </Modal>
+        )}
       </MainLayout>
+    </Suspense>
   );
 }
