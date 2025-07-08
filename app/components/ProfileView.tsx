@@ -3,10 +3,10 @@
 
 import React, { useState, useCallback } from 'react';
 import Image from 'next/image';
-
 import { Button, Icon, Card } from "./ui/shared";
 import ProfileEditor from './ProfileEditor';
 import SkillDisplay from './SkillDisplay';
+import { sdk } from "@farcaster/frame-sdk"; // NEW: Import sdk for composeCast
 
 type FarcasterUserAuth = {
   fid: number;
@@ -29,8 +29,6 @@ type SupabaseProfile = {
 type ProfileViewProps = {
   authenticatedUser: FarcasterUserAuth;
   supabaseProfile: SupabaseProfile;
-  // NEW: onProfileUpdate now takes a direct SupabaseProfile, as it's the updated profile
-  // and it will trigger the handleProfileSavedForShare in page.tsx
   onProfileUpdate: (updatedProfile: SupabaseProfile) => void;
   onPostJob: () => void;
 };
@@ -38,16 +36,34 @@ type ProfileViewProps = {
 export default function ProfileView({ authenticatedUser, supabaseProfile, onProfileUpdate, onPostJob }: ProfileViewProps) {
   const [showProfileEditor, setShowProfileEditor] = useState(false);
 
-  // This handleProfileSave now just passes the updatedProfile directly up to onProfileUpdate
-  // (which is handleProfileSavedForShare in page.tsx)
   const handleProfileSave = useCallback((updatedProfile: SupabaseProfile) => {
-    onProfileUpdate(updatedProfile); // Pass updated profile directly
+    console.log("ProfileView: Profile saved, calling onProfileUpdate...");
+    onProfileUpdate(updatedProfile);
     setShowProfileEditor(false);
   }, [onProfileUpdate]);
 
   const handleProfileCancel = useCallback(() => {
     setShowProfileEditor(false);
   }, []);
+
+  // NEW: Handle sharing profile to Farcaster
+  const handleShareProfileToFarcaster = useCallback(async () => {
+    try {
+      const appUrl = process.env.NEXT_PUBLIC_URL!; // Get app URL from env
+      const castText = `I just updated my Farlance profile as @${authenticatedUser.username || authenticatedUser.display_name}. Find top talent or post jobs for Farcaster freelancers! 🚀 #Farlance`;
+      const castUrl = appUrl;
+
+      await sdk.actions.composeCast({
+        text: castText,
+        embeds: [castUrl],
+      });
+      console.log("Farcaster cast composer opened for profile share.");
+    } catch (error) {
+      console.error("Error composing Farcaster cast for profile share:", error);
+      alert("Failed to open Farcaster composer for sharing. Please try again.");
+    }
+  }, [authenticatedUser]);
+
 
   return (
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
@@ -56,7 +72,7 @@ export default function ProfileView({ authenticatedUser, supabaseProfile, onProf
           {showProfileEditor ? (
             <ProfileEditor
               userProfile={supabaseProfile}
-              onSave={handleProfileSave} // This will trigger handleProfileSavedForShare in page.tsx
+              onSave={handleProfileSave}
               onCancel={handleProfileCancel}
             />
           ) : (
@@ -87,15 +103,15 @@ export default function ProfileView({ authenticatedUser, supabaseProfile, onProf
                     Contact: {supabaseProfile.contact_info}
                   </p>
                 )}
-                <p className="text-[var(--app-foreground-muted)] text-xs">
-                  {/* Removed Supabase Profile ID display */}
-                </p>
-
                 <Button variant="primary" size="md" onClick={() => setShowProfileEditor(true)}>
                   Edit Profile & Skills
                 </Button>
                 <Button variant="secondary" size="md" onClick={onPostJob}>
                   Post a Job
+                </Button>
+                {/* NEW: Share Profile Button */}
+                <Button variant="ghost" size="md" onClick={handleShareProfileToFarcaster}>
+                  Share Profile to Farcaster <Icon name="arrow-right" size="sm" className="ml-2" />
                 </Button>
               </div>
               {/* Display selected skills */}

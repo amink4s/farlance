@@ -11,8 +11,7 @@ import JobsView from './components/JobsView';
 import JobPostForm from './components/JobPostForm';
 import TalentView from './components/TalentView';
 import JobDetails from './components/JobDetails';
-import Modal from './components/ui/Modal'; // Ensure Modal is imported
-import ShareProfileModal from './components/ShareProfileModal'; // NEW: Import ShareProfileModal
+import Modal from './components/ui/Modal'; // Keep this import if it's used for JobDetailsModal
 
 import { supabase } from '@/lib/supabase/client';
 import { Card } from './components/ui/shared';
@@ -54,8 +53,7 @@ export default function App() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [initialJobIdFromUrl, setInitialJobIdFromUrl] = useState<string | null>(null);
 
-  // NEW: State for Share Profile Modal
-  const [isShareProfileModalOpen, setIsShareProfileModalOpen] = useState(false);
+  // REMOVED: State for Share Profile Modal: const [isShareProfileModalOpen, setIsShareProfileModalOpen] = useState(false);
 
   const searchParams = useSearchParams();
 
@@ -106,7 +104,7 @@ export default function App() {
       setInitialJobIdFromUrl(jobIdParam);
       setSelectedJobId(jobIdParam);
       setIsJobDetailsModalOpen(true);
-      setActiveView('jobs');
+      setActiveView('jobs'); // Ensure 'jobs' view is active when deep-linking to a job
     }
   }, [searchParams, initialJobIdFromUrl]);
 
@@ -131,18 +129,8 @@ export default function App() {
     window.history.replaceState({}, '', newUrl.toString());
   }, []);
 
-  // NEW: Callback for when profile is saved, to trigger share modal
-  const handleProfileSavedForShare = useCallback((updatedProfile: SupabaseProfile) => {
-    // This will be called from ProfileEditor via ProfileView
-    // Update main authenticatedData with the new profile
-    setAuthenticatedData(prev => prev ? { ...prev, profile: updatedProfile } : null);
-    setIsShareProfileModalOpen(true); // Open the share modal
-  }, []);
-
-  // NEW: Close Share Profile Modal
-  const closeShareProfileModal = useCallback(() => {
-    setIsShareProfileModalOpen(false);
-  }, []);
+  // REMOVED: Callback for when profile is saved, to trigger share modal: const handleProfileSavedForShare = useCallback((updatedProfile: SupabaseProfile) => { ... });
+  // REMOVED: Close Share Profile Modal: const closeShareProfileModal = useCallback(() => { ... });
 
 
   // Determine content to show based on auth and loading state
@@ -168,7 +156,8 @@ export default function App() {
         <ProfileView
           authenticatedUser={authenticatedData.user}
           supabaseProfile={authenticatedData.profile}
-          onProfileUpdate={handleProfileSavedForShare} // NEW: Use handleProfileSavedForShare
+          // UPDATED: onProfileUpdate just updates state, no share modal trigger here
+          onProfileUpdate={(updatedProfile) => setAuthenticatedData(prev => prev ? { ...prev, profile: updatedProfile } : null)}
           onPostJob={() => setActiveView('post-job')}
         />
       );
@@ -204,16 +193,16 @@ export default function App() {
           </Modal>
         )}
 
-        {/* NEW: Share Profile Modal */}
-        {isShareProfileModalOpen && authenticatedData?.user.username && (
+        {/* REMOVED: Share Profile Modal conditional rendering */}
+        {/* {isShareProfileModalOpen && authenticatedData?.user.username && (
           <Modal isOpen={isShareProfileModalOpen} onClose={closeShareProfileModal}>
             <ShareProfileModal
               username={authenticatedData.user.username}
-              appUrl={process.env.NEXT_PUBLIC_URL!} // Pass app URL for cast
+              appUrl={process.env.NEXT_PUBLIC_URL!}
               onClose={closeShareProfileModal}
             />
           </Modal>
-        )}
+        )} */}
       </MainLayout>
     </Suspense>
   );
