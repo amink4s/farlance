@@ -15,7 +15,7 @@ export default function ShareProfileModal({ username, appUrl, onClose }: SharePr
   const handleShareToFarcaster = useCallback(async () => {
     try {
       // Construct the cast text with escaped apostrophes
-      const castText = `I just updated my profile on Farlance &ndash; the new Farcaster-native hub for freelance jobs and talent! 🚀 Come find your next gig or hire top talent. #Farlance @${username}`; // <--- CHANGED HERE
+      const castText = `I just updated my profile on Farlance &ndash; the new Farcaster-native hub for freelance jobs and talent! 🚀 Come find your next gig or hire top talent. #Farlance @${username}`;
       
       // The URL to include in the cast, linking back to Farlance
       const castUrl = appUrl;
@@ -23,7 +23,7 @@ export default function ShareProfileModal({ username, appUrl, onClose }: SharePr
       // Use Farcaster SDK to compose a cast
       await sdk.actions.composeCast({
         text: castText,
-        embeds: [{ url: castUrl }], // Embed the app's URL
+        embeds: [castUrl], // <--- CHANGED HERE: Pass castUrl directly as string
       });
 
       console.log("Farcaster cast composer opened.");
@@ -39,7 +39,7 @@ export default function ShareProfileModal({ username, appUrl, onClose }: SharePr
     <div className="space-y-4 text-[var(--app-foreground)]">
       <h2 className="text-xl font-bold">Share Your Farlance Profile!</h2>
       <p className="text-[var(--app-foreground-muted)]">
-        Let your Farcaster network know you&apos;re now on Farlance! {/* <--- CHANGED HERE */}
+        Let your Farcaster network know you&apos;re now on Farlance!
       </p>
       <div className="flex justify-end space-x-3">
         <Button variant="secondary" onClick={onClose}>
