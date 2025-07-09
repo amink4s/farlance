@@ -1,5 +1,5 @@
 // lib/notification-client.ts
-"use client"; // This directive is present in the file, keep it
+// REMOVED: "use client"; // This directive is removed to make the file universal/server-compatible
 
 import {
   FrameNotificationDetails,
@@ -7,6 +7,9 @@ import {
   sendNotificationResponseSchema,
 } from "@farcaster/frame-sdk";
 import { getUserNotificationDetails } from "@/lib/notification";
+
+// NEW: Import randomUUID from Node's built-in crypto module
+import { randomUUID } from 'node:crypto'; // For server-side UUID generation
 
 // The default appUrl might be used if targetUrl is not provided
 const appUrl = process.env.NEXT_PUBLIC_URL || "";
@@ -22,13 +25,13 @@ export async function sendFrameNotification({
   title,
   body,
   notificationDetails,
-  targetUrl, // <--- NEW: Accept targetUrl here as a parameter
+  targetUrl,
 }: {
   fid: number;
   title: string;
   body: string;
   notificationDetails?: FrameNotificationDetails | null;
-  targetUrl?: string; // <--- NEW: Type targetUrl here as optional string
+  targetUrl?: string;
 }): Promise<SendFrameNotificationResult> {
   if (!notificationDetails) {
     notificationDetails = await getUserNotificationDetails(fid);
@@ -43,10 +46,10 @@ export async function sendFrameNotification({
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      notificationId: crypto.randomUUID(),
+      notificationId: randomUUID(), // <--- CHANGED: Using node:crypto's randomUUID
       title,
       body,
-      targetUrl: targetUrl || appUrl, // <--- NEW: Use the passed targetUrl, or fallback to default appUrl
+      targetUrl: targetUrl || appUrl,
       tokens: [notificationDetails.token],
     } satisfies SendNotificationRequest),
   });
