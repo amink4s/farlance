@@ -1,16 +1,16 @@
 // components/TalentDetails.tsx
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react'; // NEW: Added useCallback for handleContactTalent
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button, Card } from './ui/shared';
 import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
-import { sdk } from "@farcaster/frame-sdk"; // NEW: Import sdk for composeCast
+// Removed: import { sdk } from "@farcaster/frame-sdk"; // SDK not needed for direct API call from here
 
-// Define Profile type consistent with how it's fetched (including nested skills)
+
 type Profile = {
   id: string;
-  fid: number;
+  fid: number; // Required for recipientFid
   username?: string | null;
   display_name?: string | null;
   bio?: string | null;
@@ -22,7 +22,7 @@ type Profile = {
 
 type TalentDetailsProps = {
   profileId: string;
-  onClose: () => void; // Callback to close the modal
+  onClose: () => void;
 };
 
 export default function TalentDetails({ profileId, onClose }: TalentDetailsProps) {
@@ -64,23 +64,38 @@ export default function TalentDetails({ profileId, onClose }: TalentDetailsProps
     }
   }, [profileId, supabaseClient]);
 
-  // NEW: Handle contacting talent via Farcaster cast composer
+  // NEW: Handle sending direct message to talent
   const handleContactTalent = useCallback(async () => {
-    if (!profile?.username) {
-      alert("Cannot contact talent: username not available.");
+    if (!profile?.fid) {
+      alert("Cannot contact talent: Farcaster ID not available.");
       return;
     }
+    const messageText = `Hi ${profile.display_name || profile.username}! I'm interested in your skills on Farlance. Let's connect!`;
+
     try {
-      const castText = `Hey @${profile.username}! I'm interested in your skills on Farlance. Let's chat!`;
-      await sdk.actions.composeCast({
-        text: castText,
-        // No embed needed here if it's a direct message intent
+      // Call your new backend API route to send the direct message
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipientFid: profile.fid, // Farcaster ID of the talent
+          messageText: messageText,
+        }),
       });
-      console.log(`Farcaster cast composer opened to contact @${profile.username}.`);
-      onClose(); // Close the modal after opening composer
+
+      if (response.ok) {
+        alert(`Message sent to @${profile.username || profile.display_name}!`);
+        onClose(); // Close the modal
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to send message via API:", response.status, errorData);
+        alert(`Failed to send message: ${errorData.message || 'Unknown error'}`);
+      }
     } catch (error) {
-      console.error("Error composing Farcaster cast to contact talent:", error);
-      alert("Failed to open Farcaster composer. Please try again.");
+      console.error("Unhandled error sending message to talent:", error);
+      alert("An unexpected error occurred while sending message.");
     }
   }, [profile, onClose]);
 
@@ -152,7 +167,7 @@ export default function TalentDetails({ profileId, onClose }: TalentDetailsProps
         <Button variant="secondary" onClick={onClose}>
           Close
         </Button>
-        <Button variant="primary" onClick={handleContactTalent}> {/* NEW: Use handleContactTalent */}
+        <Button variant="primary" onClick={handleContactTalent}>
           Contact Talent
         </Button>
       </div>
