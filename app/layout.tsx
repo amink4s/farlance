@@ -18,51 +18,42 @@ export async function generateMetadata(): Promise<Metadata> {
   const APP_NAME = process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME || "Farlance";
   const APP_SUBTITLE = process.env.NEXT_PUBLIC_APP_SUBTITLE || "Your Job and Talent Hub for Farcaster";
   const APP_DESCRIPTION = process.env.NEXT_PUBLIC_APP_DESCRIPTION || "Connect Farcaster freelancers with projects. Post jobs or find talent based on skills.";
-  const APP_PRIMARY_CATEGORY = process.env.NEXT_PUBLIC_APP_PRIMARY_CATEGORY || "utility"; // Example: social, finance, games, utility
+  const APP_PRIMARY_CATEGORY = process.env.NEXT_PUBLIC_APP_PRIMARY_CATEGORY || "utility";
   const APP_TAGLINE = process.env.NEXT_PUBLIC_APP_TAGLINE || "The Farcaster Freelance Marketplace";
-  const HERO_IMAGE = process.env.NEXT_PUBLIC_APP_HERO_IMAGE || `${URL}/hero.png`; // Fallback hero image URL
-  const SPLASH_IMAGE = process.env.NEXT_PUBLIC_SPLASH_IMAGE || `${URL}/splash.png`; // Fallback splash image URL
+  const HERO_IMAGE = process.env.NEXT_PUBLIC_APP_HERO_IMAGE || `${URL}/hero.png`;
+  const SPLASH_IMAGE = process.env.NEXT_PUBLIC_SPLASH_IMAGE || `${URL}/splash.png`;
   const OG_TITLE = process.env.NEXT_PUBLIC_APP_OG_TITLE || `${APP_NAME} - ${APP_SUBTITLE}`;
   const OG_DESCRIPTION = process.env.NEXT_PUBLIC_APP_OG_DESCRIPTION || APP_DESCRIPTION;
-  const OG_IMAGE = process.env.NEXT_PUBLIC_APP_OG_IMAGE || HERO_IMAGE; // OG image usually same as hero
+  const OG_IMAGE = process.env.NEXT_PUBLIC_APP_OG_IMAGE || HERO_IMAGE;
 
-  // Ensure these tags are also in your Vercel Environment Variables
-  const APP_TAGS = [ // Example tags, you can customize these!
-    "freelance",
-    "freelancer",
-    "jobs",
-    "web3"
-  ];
+  // UPDATED: App tags now pulled from an environment variable string
+  const APP_TAGS_STRING = process.env.NEXT_PUBLIC_APP_TAGS_STRING || "freelance,jobs,talent,farcaster,web3"; // Default if env var not set
+  const APP_TAGS = APP_TAGS_STRING.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0); // Parse into array
 
   return {
     title: APP_NAME,
     description: APP_DESCRIPTION,
     other: {
       "fc:frame": JSON.stringify({
-        version: "next", // Use "next" for latest spec
+        version: "next",
         name: APP_NAME,
-        iconUrl: process.env.NEXT_PUBLIC_APP_ICON || `${URL}/icon.png`, // Use your actual app icon URL
+        iconUrl: process.env.NEXT_PUBLIC_APP_ICON || `${URL}/icon.png`,
         splashImageUrl: SPLASH_IMAGE,
         splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR || "#000000",
         homeUrl: URL,
-        webhookUrl: process.env.NEXT_PUBLIC_WEBHOOK_URL || `${URL}/api/webhook`, // Ensure you have a webhook URL set up if using
+        webhookUrl: process.env.NEXT_PUBLIC_WEBHOOK_URL || `${URL}/api/webhook`,
         
-        // NEW EXTENDED METADATA FIELDS:
         subtitle: APP_SUBTITLE,
         description: APP_DESCRIPTION,
-        // screenshotUrls: [ // Optional: Add URLs to actual screenshots of your app
-        //   `${URL}/screenshots/screenshot1.png`,
-        //   `${URL}/screenshots/screenshot2.png`
-        // ],
+        // screenshotUrls: [], // Keep empty or add your screenshot URLs
         primaryCategory: APP_PRIMARY_CATEGORY,
-        tags: APP_TAGS,
+        tags: APP_TAGS, // Use the parsed array here
         heroImageUrl: HERO_IMAGE,
-        tagline: APP_TAGLINE,
+        tagline: APP_TAGS, // Assuming you meant APP_TAGLINE here, not APP_TAGS
         ogTitle: OG_TITLE,
         ogDescription: OG_DESCRIPTION,
         ogImageUrl: OG_IMAGE,
 
-        // Button is part of the Frame specification itself, not extended metadata
         button: {
           title: `Launch ${APP_NAME}`,
           action: {
@@ -73,7 +64,6 @@ export async function generateMetadata(): Promise<Metadata> {
             splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR || "#000000",
           },
         },
-        // REMOVED: noindex: true, 
       }),
     },
   };
