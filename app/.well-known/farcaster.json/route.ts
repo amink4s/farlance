@@ -37,7 +37,7 @@ export async function GET() {
       signature: ACCOUNT_ASSOCIATION_SIGNATURE,
     },
     frame: {
-      version: "2", // <--- CRITICAL: Set to "2" for extended metadata support
+      version: "next", // <--- CRITICAL: Set to "2" for extended metadata support
       name: APP_NAME,
       iconUrl: APP_ICON,
       splashImageUrl: SPLASH_IMAGE,
