@@ -11,10 +11,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-// Reverting generateMetadata to a simpler form that does not stringify fc:frame
-// The fc:frame manifest is now handled by the dedicated API route
+// Reverting generateMetadata to a simpler form for general SEO/Open Graph
+// The Farcaster Mini App manifest (fc:frame/miniapp metadata) is now handled EXCLUSIVELY by the dedicated API route.
 export async function generateMetadata(): Promise<Metadata> {
-  // These are for general SEO/social sharing, not the Farcaster manifest directly
   const APP_NAME = process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME || "Farlance";
   const APP_DESCRIPTION = process.env.NEXT_PUBLIC_APP_DESCRIPTION || "Connect Farcaster freelancers with projects. Post jobs or find talent based on skills.";
   const OG_IMAGE = process.env.NEXT_PUBLIC_APP_OG_IMAGE || process.env.NEXT_PUBLIC_APP_HERO_IMAGE || ""; // Fallback for OG image
@@ -22,10 +21,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: APP_NAME,
     description: APP_DESCRIPTION,
-    // Optional: you can still provide a basic fc:frame meta tag if needed,
-    // but the primary manifest is served by /.well-known/farcaster.json/route.ts
-    // This avoids conflicts with the dedicated manifest route.
-    // For general Open Graph tags, you can add them here:
     openGraph: {
       title: APP_NAME,
       description: APP_DESCRIPTION,
@@ -41,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: APP_NAME,
       type: 'website',
     },
-    // The rest of the fc:frame properties will come from the JSON manifest API route
+    // IMPORTANT: No "fc:frame" or "fc:miniapp" meta tag here. It's handled by the API route.
   };
 }
 

@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   const URL = process.env.NEXT_PUBLIC_URL; // Your Vercel app URL
 
-  // Ensure that all these environment variables are set in Vercel
+  // Ensure that all these environment variables are set in Vercel.
   // These are used for the Farcaster manifest, social sharing, etc.
   const APP_NAME = process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME || "Farlance";
   const APP_SUBTITLE = process.env.NEXT_PUBLIC_APP_SUBTITLE || "Your Job and Talent Hub for Farcaster";
@@ -24,11 +24,10 @@ export async function GET() {
   const APP_TAGS_STRING = process.env.NEXT_PUBLIC_APP_TAGS_STRING || "freelance,jobs";
   const APP_TAGS = APP_TAGS_STRING.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
 
-  // Your Farcaster Account Association details (from .env)
+  // Your Farcaster Account Association details (from .env), critical for ownership verification
   const ACCOUNT_ASSOCIATION_HEADER = process.env.FARCASTER_HEADER!;
   const ACCOUNT_ASSOCIATION_PAYLOAD = process.env.FARCASTER_PAYLOAD!;
   const ACCOUNT_ASSOCIATION_SIGNATURE = process.env.FARCASTER_SIGNATURE!;
-
 
   const manifest = {
     accountAssociation: {
@@ -36,8 +35,9 @@ export async function GET() {
       payload: ACCOUNT_ASSOCIATION_PAYLOAD,
       signature: ACCOUNT_ASSOCIATION_SIGNATURE,
     },
-    frame: {
-      version: "next", // <--- CRITICAL: Set to "2" for extended metadata support
+    // Using "miniapp" property and "version": "1" as per official spec example
+    miniapp: { // <--- CRITICAL: Use "miniapp" here
+      version: "1", // <--- CRITICAL: Set to "1" as per official spec example
       name: APP_NAME,
       iconUrl: APP_ICON,
       splashImageUrl: SPLASH_IMAGE,
@@ -45,7 +45,7 @@ export async function GET() {
       homeUrl: URL,
       webhookUrl: process.env.NEXT_PUBLIC_WEBHOOK_URL || `${URL}/api/webhook`, // Ensure this webhook URL is valid
 
-      // Extended Metadata (Farcaster Mini Apps Specification v2)
+      // Extended Metadata (as per spec, even if version is 1 for "miniapp")
       subtitle: APP_SUBTITLE,
       description: APP_DESCRIPTION,
       // screenshotUrls: ["https://your-app.com/screenshot1.png"], // Optional: Add actual screenshot URLs if you have them
@@ -57,14 +57,15 @@ export async function GET() {
       ogDescription: OG_DESCRIPTION,
       ogImageUrl: OG_IMAGE,
 
-      // Button properties (part of frame spec, usually defined in homeUrl frame itself)
-      // These are usually dynamic based on the frame content, but can be a default.
+      // button (for embeds) properties are part of the 'miniapp' object
+      // They usually come from the homeUrl frame itself or are a default if client needs it.
+      // This matches the Example Manifest in the official docs for "miniapp" key.
       button: {
         title: `Launch ${APP_NAME}`,
         action: {
-          type: "launch_frame",
+          type: "launch_frame", // Or "launch_miniapp" per spec example
           name: APP_NAME,
-          url: URL, // Deep-link to your app's base URL
+          url: URL,
           splashImageUrl: SPLASH_IMAGE,
           splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR || "#000000",
         },
