@@ -1,11 +1,13 @@
 // components/TalentDetails.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // NEW: Added useCallback for handleContactTalent
 import { Button, Card } from './ui/shared';
 import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
+import { sdk } from "@farcaster/frame-sdk"; // NEW: Import sdk for composeCast
 
+// Define Profile type consistent with how it's fetched (including nested skills)
 type Profile = {
   id: string;
   fid: number;
@@ -20,7 +22,7 @@ type Profile = {
 
 type TalentDetailsProps = {
   profileId: string;
-  onClose: () => void;
+  onClose: () => void; // Callback to close the modal
 };
 
 export default function TalentDetails({ profileId, onClose }: TalentDetailsProps) {
@@ -61,6 +63,27 @@ export default function TalentDetails({ profileId, onClose }: TalentDetailsProps
       fetchTalentDetails();
     }
   }, [profileId, supabaseClient]);
+
+  // NEW: Handle contacting talent via Farcaster cast composer
+  const handleContactTalent = useCallback(async () => {
+    if (!profile?.username) {
+      alert("Cannot contact talent: username not available.");
+      return;
+    }
+    try {
+      const castText = `Hey @${profile.username}! I'm interested in your skills on Farlance. Let's chat!`;
+      await sdk.actions.composeCast({
+        text: castText,
+        // No embed needed here if it's a direct message intent
+      });
+      console.log(`Farcaster cast composer opened to contact @${profile.username}.`);
+      onClose(); // Close the modal after opening composer
+    } catch (error) {
+      console.error("Error composing Farcaster cast to contact talent:", error);
+      alert("Failed to open Farcaster composer. Please try again.");
+    }
+  }, [profile, onClose]);
+
 
   if (loading) {
     return (
@@ -129,7 +152,7 @@ export default function TalentDetails({ profileId, onClose }: TalentDetailsProps
         <Button variant="secondary" onClick={onClose}>
           Close
         </Button>
-        <Button variant="primary" onClick={() => alert(`Contacting ${profile.display_name || profile.username}`)}>
+        <Button variant="primary" onClick={handleContactTalent}> {/* NEW: Use handleContactTalent */}
           Contact Talent
         </Button>
       </div>
