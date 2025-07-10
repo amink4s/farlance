@@ -26,16 +26,16 @@ export async function generateMetadata(): Promise<Metadata> {
   const OG_DESCRIPTION = process.env.NEXT_PUBLIC_APP_OG_DESCRIPTION || APP_DESCRIPTION;
   const OG_IMAGE = process.env.NEXT_PUBLIC_APP_OG_IMAGE || HERO_IMAGE;
 
-  // UPDATED: App tags now pulled from an environment variable string
-  const APP_TAGS_STRING = process.env.NEXT_PUBLIC_APP_TAGS_STRING || "freelance,jobs,talent,farcaster,web3"; // Default if env var not set
-  const APP_TAGS = APP_TAGS_STRING.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0); // Parse into array
+  // App tags pulled from an environment variable string and parsed
+  const APP_TAGS_STRING = process.env.NEXT_PUBLIC_APP_TAGS_STRING || "freelance,jobs,talent,farcaster,web3";
+  const APP_TAGS = APP_TAGS_STRING.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
 
   return {
     title: APP_NAME,
     description: APP_DESCRIPTION,
     other: {
       "fc:frame": JSON.stringify({
-        version: "next",
+        version: "next", 
         name: APP_NAME,
         iconUrl: process.env.NEXT_PUBLIC_APP_ICON || `${URL}/icon.png`,
         splashImageUrl: SPLASH_IMAGE,
@@ -45,11 +45,11 @@ export async function generateMetadata(): Promise<Metadata> {
         
         subtitle: APP_SUBTITLE,
         description: APP_DESCRIPTION,
-        // screenshotUrls: [], // Keep empty or add your screenshot URLs
+        // screenshotUrls: [], // Add URLs to actual screenshots here if desired
         primaryCategory: APP_PRIMARY_CATEGORY,
-        tags: APP_TAGS, // Use the parsed array here
+        tags: APP_TAGS, 
         heroImageUrl: HERO_IMAGE,
-        tagline: APP_TAGS, // Assuming you meant APP_TAGLINE here, not APP_TAGS
+        tagline: APP_TAGLINE, 
         ogTitle: OG_TITLE,
         ogDescription: OG_DESCRIPTION,
         ogImageUrl: OG_IMAGE,
