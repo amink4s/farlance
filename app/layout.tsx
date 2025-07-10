@@ -1,6 +1,6 @@
 // app/layout.tsx
 import "./theme.css";
-import "@coinbase/onchainkit/styles.css";
+import "@coinbase/onchainkit/styles.css"; // Keep this if it's for general theme
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -11,61 +11,37 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+// Reverting generateMetadata to a simpler form that does not stringify fc:frame
+// The fc:frame manifest is now handled by the dedicated API route
 export async function generateMetadata(): Promise<Metadata> {
-  const URL = process.env.NEXT_PUBLIC_URL; // Your Vercel app URL
-
-  // Define some default values or use existing env vars for new metadata fields
+  // These are for general SEO/social sharing, not the Farcaster manifest directly
   const APP_NAME = process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME || "Farlance";
-  const APP_SUBTITLE = process.env.NEXT_PUBLIC_APP_SUBTITLE || "Your Job and Talent Hub for Farcaster";
   const APP_DESCRIPTION = process.env.NEXT_PUBLIC_APP_DESCRIPTION || "Connect Farcaster freelancers with projects. Post jobs or find talent based on skills.";
-  const APP_PRIMARY_CATEGORY = process.env.NEXT_PUBLIC_APP_PRIMARY_CATEGORY || "utility";
-  const APP_TAGLINE = process.env.NEXT_PUBLIC_APP_TAGLINE || "Freelance Marketplace";
-  const HERO_IMAGE = process.env.NEXT_PUBLIC_APP_HERO_IMAGE || `${URL}/hero.png`;
-  const SPLASH_IMAGE = process.env.NEXT_PUBLIC_SPLASH_IMAGE || `${URL}/splash.png`;
-  const OG_TITLE = process.env.NEXT_PUBLIC_APP_OG_TITLE || `${APP_NAME} - ${APP_SUBTITLE}`;
-  const OG_DESCRIPTION = process.env.NEXT_PUBLIC_APP_OG_DESCRIPTION || APP_DESCRIPTION;
-  const OG_IMAGE = process.env.NEXT_PUBLIC_APP_OG_IMAGE || HERO_IMAGE;
-
-  // App tags pulled from an environment variable string and parsed
-  const APP_TAGS_STRING = process.env.NEXT_PUBLIC_APP_TAGS_STRING || "freelance,jobs,talent,farcaster,web3";
-  const APP_TAGS = APP_TAGS_STRING.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+  const OG_IMAGE = process.env.NEXT_PUBLIC_APP_OG_IMAGE || process.env.NEXT_PUBLIC_APP_HERO_IMAGE || ""; // Fallback for OG image
 
   return {
     title: APP_NAME,
     description: APP_DESCRIPTION,
-    other: {
-      "fc:frame": JSON.stringify({
-        version: "next", 
-        name: APP_NAME,
-        iconUrl: process.env.NEXT_PUBLIC_APP_ICON || `${URL}/icon.png`,
-        splashImageUrl: SPLASH_IMAGE,
-        splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR || "#000000",
-        homeUrl: URL,
-        webhookUrl: process.env.NEXT_PUBLIC_WEBHOOK_URL || `${URL}/api/webhook`,
-        
-        subtitle: APP_SUBTITLE,
-        description: APP_DESCRIPTION,
-        // screenshotUrls: [], // Add URLs to actual screenshots here if desired
-        primaryCategory: APP_PRIMARY_CATEGORY,
-        tags: APP_TAGS, 
-        heroImageUrl: HERO_IMAGE,
-        tagline: APP_TAGLINE, 
-        ogTitle: OG_TITLE,
-        ogDescription: OG_DESCRIPTION,
-        ogImageUrl: OG_IMAGE,
-
-        button: {
-          title: `Launch ${APP_NAME}`,
-          action: {
-            type: "launch_frame",
-            name: APP_NAME,
-            url: URL,
-            splashImageUrl: SPLASH_IMAGE,
-            splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR || "#000000",
-          },
+    // Optional: you can still provide a basic fc:frame meta tag if needed,
+    // but the primary manifest is served by /.well-known/farcaster.json/route.ts
+    // This avoids conflicts with the dedicated manifest route.
+    // For general Open Graph tags, you can add them here:
+    openGraph: {
+      title: APP_NAME,
+      description: APP_DESCRIPTION,
+      images: [
+        {
+          url: OG_IMAGE,
+          width: 1200,
+          height: 630,
+          alt: APP_NAME,
         },
-      }),
+      ],
+      url: process.env.NEXT_PUBLIC_URL,
+      siteName: APP_NAME,
+      type: 'website',
     },
+    // The rest of the fc:frame properties will come from the JSON manifest API route
   };
 }
 
