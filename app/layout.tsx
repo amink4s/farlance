@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const APP_SUBTITLE = process.env.NEXT_PUBLIC_APP_SUBTITLE || "Your Job and Talent Hub for Farcaster";
   const APP_DESCRIPTION = process.env.NEXT_PUBLIC_APP_DESCRIPTION || "Connect Farcaster freelancers with projects. Post jobs or find talent based on skills.";
   const APP_PRIMARY_CATEGORY = process.env.NEXT_PUBLIC_APP_PRIMARY_CATEGORY || "utility";
-  const APP_TAGLINE = process.env.NEXT_PUBLIC_APP_TAGLINE || "The Farcaster Freelance Marketplace";
+  const APP_TAGLINE = process.env.NEXT_PUBLIC_APP_TAGLINE || "Freelance Marketplace";
 
   // Image URLs - ensure these env vars are set in Vercel with actual image URLs
   const APP_ICON = process.env.NEXT_PUBLIC_APP_ICON || `${URL}/icon.png`;
@@ -32,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const OG_DESCRIPTION = process.env.NEXT_PUBLIC_APP_OG_DESCRIPTION || APP_DESCRIPTION;
 
   // App tags (if needed in meta tag, though primary is in /.well-known)
-  const APP_TAGS_STRING = process.env.NEXT_PUBLIC_APP_TAGS_STRING || "freelance,jobs,talent,farcaster,web3";
+  const APP_TAGS_STRING = process.env.NEXT_PUBLIC_APP_TAGS_STRING || "freelance,jobs";
   const APP_TAGS = APP_TAGS_STRING.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
 
   return {
