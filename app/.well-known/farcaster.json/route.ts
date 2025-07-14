@@ -38,7 +38,7 @@ export async function GET() {
       payload: ACCOUNT_ASSOCIATION_PAYLOAD,
       signature: ACCOUNT_ASSOCIATION_SIGNATURE,
     },
-    miniapp: {
+    frame: {
       version: "next",
       name: APP_NAME,
       iconUrl: APP_ICON, // Using new constructed URL
