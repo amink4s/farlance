@@ -8,7 +8,7 @@ export async function GET() {
   const BASE_URL = process.env.NEXT_PUBLIC_URL?.endsWith('/') ? process.env.NEXT_PUBLIC_URL.slice(0, -1) : process.env.NEXT_PUBLIC_URL || "https://farlance.vercel.app";
 
   // Ensure that all these environment variables are set in Vercel.
-  const APP_NAME = process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME || "c";
+  const APP_NAME = process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME || "Farlance";
   const APP_SUBTITLE = process.env.NEXT_PUBLIC_APP_SUBTITLE || "Your Job and Talent Hub for Farcaster";
   const APP_DESCRIPTION = process.env.NEXT_PUBLIC_APP_DESCRIPTION || "Connect Farcaster freelancers with projects. Post jobs or find talent based on skills.";
   const APP_PRIMARY_CATEGORY = process.env.NEXT_PUBLIC_APP_PRIMARY_CATEGORY || "utility";
@@ -23,7 +23,7 @@ export async function GET() {
   const OG_IMAGE = process.env.NEXT_PUBLIC_APP_OG_IMAGE || HERO_IMAGE;
 
   // App tags pulled from an environment variable string and parsed
-  const APP_TAGS_STRING = process.env.NEXT_PUBLIC_APP_TAGS_STRING || "freelance,jobs,talent,farcaster,web3";
+  const APP_TAGS_STRING = process.env.NEXT_PUBLIC_APP_TAGS_STRING || "freelance,jobs";
   const APP_TAGS = APP_TAGS_STRING.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
 
   // Your Farcaster Account Association details (from .env)
@@ -46,7 +46,7 @@ export async function GET() {
       splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR || "#000000",
       homeUrl: `${BASE_URL}/`, // Ensure trailing slash if needed for homeUrl spec
       imageUrl: SPLASH_IMAGE,
-      buttonTitle: "Launch Farlance"
+      buttonTitle: "Launch Farlance",
       webhookUrl: process.env.NEXT_PUBLIC_WEBHOOK_URL || `${BASE_URL}/api/webhook`, // Using new constructed URL
       
       subtitle: APP_SUBTITLE,
