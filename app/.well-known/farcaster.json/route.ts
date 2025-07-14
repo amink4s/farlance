@@ -39,7 +39,7 @@ export async function GET() {
       signature: ACCOUNT_ASSOCIATION_SIGNATURE,
     },
     miniapp: {
-      version: "1",
+      version: "next",
       name: APP_NAME,
       iconUrl: APP_ICON, // Using new constructed URL
       splashImageUrl: SPLASH_IMAGE, // Using new constructed URL
