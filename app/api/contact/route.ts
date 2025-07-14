@@ -15,6 +15,9 @@ const WARPCAST_API_KEY = process.env.WARPCAST_API_KEY!;
 // const neynarClient = new NeynarAPIClient(new Configuration({ apiKey: process.env.NEYNAR_API_KEY! }));
 
 export async function POST(request: Request) {
+  console.warn("app/api/contact/route.ts POST request received, but currently disabled.");
+  return NextResponse.json({ message: "Direct messaging temporarily disabled for maintenance." }, { status: 503 });
+  /*
   const { recipientFid, messageText } = await request.json();
 
   if (!recipientFid || !messageText) {
@@ -53,4 +56,5 @@ export async function POST(request: Request) {
     console.error("Unhandled error sending direct cast:", error);
     return NextResponse.json({ message: 'An unexpected error occurred during direct cast' }, { status: 500 });
   }
+  */
 }

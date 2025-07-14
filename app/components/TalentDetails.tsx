@@ -5,9 +5,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button, Card } from './ui/shared';
 import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
-// Removed: import { sdk } from "@farcaster/frame-sdk"; // SDK not needed for direct API call from here
+import { sdk } from "@farcaster/frame-sdk"; // Keep sdk import for actions.openUrl
 
-
+// Define Profile type consistent with how it's fetched (including nested skills)
 type Profile = {
   id: string;
   fid: number; // Required for recipientFid
@@ -64,38 +64,25 @@ export default function TalentDetails({ profileId, onClose }: TalentDetailsProps
     }
   }, [profileId, supabaseClient]);
 
-  // NEW: Handle sending direct message to talent
+  // NEW: Handle opening Warpcast DM composer with pre-filled message
   const handleContactTalent = useCallback(async () => {
     if (!profile?.fid) {
       alert("Cannot contact talent: Farcaster ID not available.");
       return;
     }
-    const messageText = `Hi ${profile.display_name || profile.username}! I'm interested in your skills on Farlance. Let's connect!`;
+    // Construct the Warpcast DM intent URL
+    const messageTextEncoded = encodeURIComponent(`Hi ${profile.display_name || profile.username}! I'm interested in your skills on Farlance. Let's connect!`);
+    const dmIntentUrl = `https://warpcast.com/~/inbox/create/${profile.fid}?text=${messageTextEncoded}`;
 
     try {
-      // Call your new backend API route to send the direct message
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          recipientFid: profile.fid, // Farcaster ID of the talent
-          messageText: messageText,
-        }),
-      });
-
-      if (response.ok) {
-        alert(`Message sent to @${profile.username || profile.display_name}!`);
-        onClose(); // Close the modal
-      } else {
-        const errorData = await response.json();
-        console.error("Failed to send message via API:", response.status, errorData);
-        alert(`Failed to send message: ${errorData.message || 'Unknown error'}`);
-      }
+      // Use sdk.actions.openUrl to open the intent URL.
+      // This will open Warpcast's DM composer with the message pre-filled.
+      await sdk.actions.openUrl(dmIntentUrl);
+      console.log(`Opened Warpcast DM composer for FID ${profile.fid}.`);
+      onClose(); // Close the modal after opening composer
     } catch (error) {
-      console.error("Unhandled error sending message to talent:", error);
-      alert("An unexpected error occurred while sending message.");
+      console.error("Error opening Warpcast DM composer:", error);
+      alert("Failed to open Farcaster DM composer. Please try again.");
     }
   }, [profile, onClose]);
 
