@@ -73,7 +73,7 @@ export async function generateMetadata(): Promise<Metadata> {
       }),
       // For backward compatibility, also include fc:frame (uses version "1")
       "fc:frame": JSON.stringify({
-        version: "1", // Legacy version for fc:frame meta tag
+        version: "next", // Legacy version for fc:frame meta tag
         imageUrl: HERO_IMAGE,
         button: {
           title: `Launch ${APP_NAME}`,
