@@ -3,6 +3,8 @@ import '@coinbase/onchainkit/styles.css';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Providers } from './providers';
+import { Suspense } from "react";
+
 
 
 export const viewport: Viewport = {
@@ -44,6 +46,9 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-background">
         <Providers>{children}</Providers>
+        <Suspense fallback={<div>Loading Farlance...</div>}>
+          <Providers>{children}</Providers>
+        </Suspense>
       </body>
     </html>
   );
