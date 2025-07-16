@@ -75,6 +75,8 @@ export async function generateMetadata(): Promise<Metadata> {
       "fc:frame": JSON.stringify({
         version: "next", // Legacy version for fc:frame meta tag
         imageUrl: HERO_IMAGE,
+        ogImageUrl: HERO_IMAGE,
+        homeUrl: URL,
         button: {
           title: `Launch ${APP_NAME}`,
           action: {
