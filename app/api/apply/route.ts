@@ -34,13 +34,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Job not found or poster details unavailable.' }, { status: 404 });
     }
 
-    const posterFid = job.profiles?.fid;
-    const posterUsername = job.profiles?.username || job.profiles?.display_name || 'Job Poster';
+    // NEW: Safely extract posterFid from job.profiles, handling potential array type inference
+    let posterFid: number | null = null;
+    let posterUsername: string | null = null;
 
-    if (!posterFid) {
-      console.error("Poster FID not found for job:", job.id);
+    if (job.profiles) {
+      // Check if job.profiles is an array (TypeScript might infer this sometimes for relations)
+      if (Array.isArray(job.profiles) && job.profiles.length > 0) {
+        posterFid = (job.profiles[0] as any)?.fid as number;
+        posterUsername = (job.profiles[0] as any)?.username || (job.profiles[0] as any)?.display_name || 'Job Poster';
+      } else if (typeof job.profiles === 'object' && 'fid' in job.profiles) {
+        // More common case: job.profiles is the single related object
+        posterFid = (job.profiles as any)?.fid as number;
+        posterUsername = (job.profiles as any)?.username || (job.profiles as any)?.display_name || 'Job Poster';
+      }
+    }
+    
+    if (typeof posterFid !== 'number' || isNaN(posterFid)) { // Check if it's a valid number
+      console.error("Poster FID not found or invalid for job:", job.id);
       return NextResponse.json({ message: 'Job poster FID not available for notification.' }, { status: 500 });
     }
+
 
     // 2. Insert application into 'applications' table
     const { data: newApplication, error: appInsertError } = await supabase
@@ -61,22 +75,13 @@ export async function POST(request: Request) {
 
     // 3. Send Farcaster notification to the Job Poster
     const APP_BASE_URL = process.env.NEXT_PUBLIC_URL || 'https://farlance.vercel.app';
-    // You might want a specific deep-link to the application management page later
-    // For now, it links to the app's base URL or the job details if it's the applicant's job
-    const notificationTargetUrl = `${APP_BASE_URL}/?view=profile`; // Poster needs to check their own job applications page (future)
+    const notificationTargetUrl = `${APP_BASE_URL}/?view=profile`;
 
-    // Fetch applicant's username for notification message
-    const { data: applicantProfile, error: applicantProfileError } = await supabase
-      .from('profiles')
-      .select('username, display_name')
-      .eq('id', applicantProfileId)
-      .single();
-
-    const applicantName = applicantProfile?.username || applicantProfile?.display_name || 'A Farlance User';
+    const applicantProfileName = applicantProfile?.username || applicantProfile?.display_name || 'A Farlance User';
 
     try {
       const notificationResult = await sendFrameNotification({
-        fid: posterFid, // Send to the job poster
+        fid: posterFid, // Use the confirmed posterFid
         title: `💼 New Application for "${job.title}"!`,
         body: `@${applicantName} just applied for your job on Farlance.`,
         targetUrl: notificationTargetUrl,
