@@ -5,6 +5,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Button } from './ui/shared';
 import { supabase } from '@/lib/supabase/client';
 import Image from 'next/image';
+import { sdk } from "@farcaster/frame-sdk"; // <--- NEW: Import sdk for quickAuth.fetch
+
 
 // Define Job type consistent with how it's fetched (including nested skills and poster profile)
 type Job = {
@@ -35,15 +37,9 @@ type JobDetailsProps = {
 export default function JobDetails({ jobId, onClose }: JobDetailsProps) {
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState<Job | null>(null);
-  const [applicationMessage, setApplicationMessage] = useState(''); // NEW: State for application message
-  const [applying, setApplying] = useState(false); // NEW: State to track application submission
+  const [applicationMessage, setApplicationMessage] = useState('');
+  const [applying, setApplying] = useState(false);
   
-  // Need current user's profile ID and FID to send application.
-  // Assuming the user is authenticated and their profile data is available from page.tsx context.
-  // We don't have authenticatedData here directly, so we'll need to fetch it or pass it.
-  // For simplicity, let's fetch it from Supabase for the current user's FID.
-  // This is a temporary measure; for a full app, authenticatedData should be passed down.
-
   const supabaseClient = supabase;
 
   useEffect(() => {
@@ -80,27 +76,15 @@ export default function JobDetails({ jobId, onClose }: JobDetailsProps) {
     }
   }, [jobId, supabaseClient]);
 
-  // NEW: Handle applying for the job
+  // Handle applying for the job
   const handleApplyForJob = useCallback(async () => {
     if (!job) return;
 
     setApplying(true);
     try {
-      // Get current authenticated user's FID for the application
-      // This is a crucial step that needs to correctly get the *current user's* FID and profile ID.
-      // This information is available in `app/page.tsx` as `authenticatedData`.
-      // We will assume `authenticatedData` is passed down as a prop or fetched here.
-      // For a quick fix, let's re-fetch current user's profile based on Quick Auth token if needed.
-      // However, it's better to pass it down from App.tsx.
-
-      // For MVP, let's assume `authenticatedUser` and `supabaseProfile` are passed as props to JobDetails.
-      // This means JobDetailsProps needs to be updated.
-      // If not, a fetch here from `sdk.quickAuth.getToken()` and then `api/auth` would be needed.
-
-      // Let's assume we can fetch current user's data here for simplicity of prop chain for now
-      // THIS WILL BE REFACTORED TO PASS AUTHENTICATEDUSER AND SUPABASEPROFILE AS PROPS TO JobDetails
-      // FROM APP.TSX, WHEN THAT IS IMPLEMENTED. For now, a quick fetch.
-      const authRes = await sdk.quickAuth.fetch('/api/auth');
+      // Fetch current authenticated user's FID and profile ID for the application
+      // This is necessary because JobDetails component does not directly receive authenticatedData props.
+      const authRes = await sdk.quickAuth.fetch('/api/auth'); // Uses sdk.quickAuth.fetch
       if (!authRes.ok) {
         alert("Please sign in to apply for jobs.");
         setApplying(false);
@@ -109,7 +93,6 @@ export default function JobDetails({ jobId, onClose }: JobDetailsProps) {
       const authData = await authRes.json();
       const applicantProfileId = authData.profile.id;
       const applicantFid = authData.user.fid;
-      // END TEMPORARY FETCH (WILL BE REPLACED WITH PROPS)
 
       const response = await fetch('/api/apply', {
         method: 'POST',

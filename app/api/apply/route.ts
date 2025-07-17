@@ -34,27 +34,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Job not found or poster details unavailable.' }, { status: 404 });
     }
 
-    // NEW: Safely extract posterFid from job.profiles, handling potential array type inference
+    // Safely extract posterFid from job.profiles, handling potential array type inference
     let posterFid: number | null = null;
     let posterUsername: string | null = null;
 
     if (job.profiles) {
-      // Check if job.profiles is an array (TypeScript might infer this sometimes for relations)
       if (Array.isArray(job.profiles) && job.profiles.length > 0) {
         posterFid = (job.profiles[0] as any)?.fid as number;
         posterUsername = (job.profiles[0] as any)?.username || (job.profiles[0] as any)?.display_name || 'Job Poster';
       } else if (typeof job.profiles === 'object' && 'fid' in job.profiles) {
-        // More common case: job.profiles is the single related object
         posterFid = (job.profiles as any)?.fid as number;
         posterUsername = (job.profiles as any)?.username || (job.profiles as any)?.display_name || 'Job Poster';
       }
     }
-    
-    if (typeof posterFid !== 'number' || isNaN(posterFid)) { // Check if it's a valid number
+
+    if (typeof posterFid !== 'number' || isNaN(posterFid)) {
       console.error("Poster FID not found or invalid for job:", job.id);
       return NextResponse.json({ message: 'Job poster FID not available for notification.' }, { status: 500 });
     }
 
+    // NEW: Fetch applicant's profile for notification message (applicantName)
+    const { data: applicantProfile, error: applicantProfileError } = await supabase
+      .from('profiles')
+      .select('username, display_name')
+      .eq('id', applicantProfileId)
+      .single();
+
+    const applicantName = applicantProfile?.username || applicantProfile?.display_name || 'A Farlance User'; // Correctly declared here
 
     // 2. Insert application into 'applications' table
     const { data: newApplication, error: appInsertError } = await supabase
@@ -62,7 +68,7 @@ export async function POST(request: Request) {
       .insert({
         job_id: jobId,
         applicant_profile_id: applicantProfileId,
-        status: 'applied', // Default status
+        status: 'applied',
         message: applicationMessage || null,
       })
       .select()
@@ -77,13 +83,11 @@ export async function POST(request: Request) {
     const APP_BASE_URL = process.env.NEXT_PUBLIC_URL || 'https://farlance.vercel.app';
     const notificationTargetUrl = `${APP_BASE_URL}/?view=profile`;
 
-    const applicantProfileName = applicantProfile?.username || applicantProfile?.display_name || 'A Farlance User';
-
     try {
       const notificationResult = await sendFrameNotification({
-        fid: posterFid, // Use the confirmed posterFid
+        fid: posterFid,
         title: `💼 New Application for "${job.title}"!`,
-        body: `@${applicantName} just applied for your job on Farlance.`,
+        body: `@${applicantName} just applied for your job on Farlance.`, // Using applicantName
         targetUrl: notificationTargetUrl,
       });
 
