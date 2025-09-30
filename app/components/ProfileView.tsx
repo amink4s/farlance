@@ -24,6 +24,7 @@ type SupabaseProfile = {
   contact_info?: string | null;
   created_at: string;
   pfp_url?: string | null;
+  portfolio_links?: string | null;
 };
 
 type ProfileViewProps = {
@@ -102,6 +103,11 @@ export default function ProfileView({ authenticatedUser, supabaseProfile, onProf
                   <p className="text-[var(--app-foreground-muted)]">
                     Contact: {supabaseProfile.contact_info}
                   </p>
+                )}
+                {supabaseProfile.portfolio_links && ( // <--- NEW: Display portfolio links
+                <p className="text-[var(--app-foreground-muted)]">
+                    <span className="font-semibold">Portfolio:</span> {supabaseProfile.portfolio_links}
+                </p>
                 )}
                 <Button variant="primary" size="md" onClick={() => setShowProfileEditor(true)}>
                   Edit Profile & Skills

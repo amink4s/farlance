@@ -17,6 +17,7 @@ type Profile = {
   contact_info?: string | null;
   created_at: string;
   pfp_url?: string | null;
+  portfolio_links?: string | null;
   user_skills?: { skills: { id: string; name: string } }[];
 };
 
@@ -134,7 +135,11 @@ export default function TalentDetails({ profileId, onClose }: TalentDetailsProps
           <span className="font-semibold">Contact:</span> {profile.contact_info}
         </p>
       )}
-
+        {profile.portfolio_links && ( // <--- NEW: Display portfolio links
+          <p className="text-[var(--app-foreground)] text-sm">
+            <span className="font-semibold">Portfolio:</span> {profile.portfolio_links}
+          </p>
+        )}
       <div className="mt-4">
         <h4 className="text-lg font-semibold text-[var(--app-foreground)] mb-2">Skills:</h4>
         {profile.user_skills && profile.user_skills.length > 0 ? (
