@@ -105,9 +105,17 @@ export default function ProfileView({ authenticatedUser, supabaseProfile, onProf
                   </p>
                 )}
                 {supabaseProfile.portfolio_links && ( // <--- NEW: Display portfolio links
-                <p className="text-[var(--app-foreground-muted)]">
-                    <span className="font-semibold">Portfolio:</span> {supabaseProfile.portfolio_links}
-                </p>
+                  <p className="text-[var(--app-foreground-muted)]">
+                      <span className="font-semibold">Portfolio:</span>{' '}
+                      <a
+                        href={supabaseProfile.portfolio_links}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline"
+                      >
+                        {supabaseProfile.portfolio_links}
+                      </a>
+                  </p>
                 )}
                 <Button variant="primary" size="md" onClick={() => setShowProfileEditor(true)}>
                   Edit Profile & Skills
