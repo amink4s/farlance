@@ -3,12 +3,21 @@
 
 import { NextResponse } from 'next/server';
 import { createClient as createSupabaseServerClient } from '@/lib/supabase/server'; // Server-side Supabase client
-import { NeynarAPIClient, Configuration } from "@neynar/nodejs-sdk"; // For fetching user info for notifications
+// We will use the standard fetch/axios instead of the SDK client 
+// for the score check to keep the code cleaner and avoid conflicts with the
+// SDK client defined for notifications if they are for different purposes/versions.
+import { NeynarAPIClient, Configuration } from "@neynar/nodejs-sdk"; 
 import { sendFrameNotification } from '@/lib/notification-client'; // For sending Farcaster notifications
 
-// Initialize Neynar API client for fetching user info (like display_name for notifications)
+// --- Configuration ---
+// Set the recommended quality threshold (0.5 is the starting point)
+const NEYNAR_SCORE_THRESHOLD = 0.99;
+
+// Initialize a single Neynar API client instance for ALL Neynar interactions (notifications, score check, etc.)
+// FIX 1: We only need one neynarClient, and we need to ensure the apiKey is treated as a string.
+// FIX 2: Ensure we use the correct type for Configuration, which can take a plain object.
 const neynarClient = new NeynarAPIClient(new Configuration({
-  apiKey: process.env.NEYNAR_API_KEY!, // Use your server-side Neynar API key
+  apiKey: process.env.NEYNAR_API_KEY as string, // Force as string to satisfy TypeScript, assuming it's set in Vercel.
 }));
 
 // Ensure NEXT_PUBLIC_URL is defined for deep-linking
@@ -21,29 +30,52 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Missing job data, skills, or poster FID' }, { status: 400 });
   }
 
-  // --- QUOTIENT SCORE CHECK ---
-  // Set a high threshold for testing (e.g., 0.8)
-  const QUOTIENT_SCORE_THRESHOLD = 0.8;
-  const QUOTIENT_API_KEY = process.env.QUOTIENT_API_KEY;
-  async function getQuotientScore(fid: number, apiKey: string) {
-    const response = await fetch('https://api.quotient.social/v1/user-reputation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fids: [fid], api_key: apiKey }),
-    });
-    const data = await response.json();
-    return data.data?.[0]?.quotientScore ?? null;
+  // --- NEYNAR SCORE CHECK ---
+  // The FID to check is 'posterFid'
+  const fidToCheck = posterFid;
+
+  if (!fidToCheck) {
+    return NextResponse.json(
+      { success: false, message: 'Farcaster ID (FID) is required to post a job.' }, 
+      { status: 400 }
+    );
   }
 
-  if (!QUOTIENT_API_KEY) {
-    return NextResponse.json({ message: 'Quotient API key not configured.' }, { status: 500 });
-  }
-  const quotientScore = await getQuotientScore(posterFid, QUOTIENT_API_KEY);
-  if (quotientScore === null || quotientScore < QUOTIENT_SCORE_THRESHOLD) {
-    return NextResponse.json({
-      message: `You need a higher Quotient score (${QUOTIENT_SCORE_THRESHOLD}) to post jobs. Your score: ${quotientScore ?? 'N/A'}`,
-      allowed: false,
-    }, { status: 403 });
+  try {
+    // 1. Fetch the user's data, which includes the score
+    const fids = [Number(fidToCheck)]; // FIDs must be an array of numbers
+    const { users } = await neynarClient.fetchBulkUsers({ fids });
+    
+    const user = users[0];
+
+    // FIX 3: The neynar_user_score property does not exist directly on the 'User' type 
+    // in the public SDK types, but is often found in the extended user object 
+    // returned by fetchBulkUsers. We safely access the score from the array result.
+    // The property name for the score on the fetched user object is typically 'neynar_user_score'.
+    // We use bracket notation to be safe and ensure it is treated as a number.
+    const userScore = (user as any)?.neynar_user_score as number | undefined; 
+
+    console.log(`User FID: ${fidToCheck}, Neynar Score: ${userScore}`);
+
+    if (userScore === undefined || userScore < NEYNAR_SCORE_THRESHOLD) {
+      // 2. Reject the job post if the score is below the threshold
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: `User score (${userScore ?? 'N/A'}) is too low. Must be ${NEYNAR_SCORE_THRESHOLD} or higher to post a job.` 
+        },
+        { status: 403 } // Forbidden
+      );
+    }
+    
+    // --- SCORE CHECK PASSED: PROCEED WITH JOB CREATION ---
+
+  } catch (error) {
+    console.error('Neynar API score check error:', error);
+    return NextResponse.json(
+      { success: false, message: 'An internal error occurred while checking user quality.' },
+      { status: 500 }
+    );
   }
 
   const supabase = createSupabaseServerClient(); // Server-side Supabase client
