@@ -21,6 +21,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Missing job data, skills, or poster FID' }, { status: 400 });
   }
 
+  // --- QUOTIENT SCORE CHECK ---
+  // Set a high threshold for testing (e.g., 0.8)
+  const QUOTIENT_SCORE_THRESHOLD = 0.8;
+  const QUOTIENT_API_KEY = process.env.QUOTIENT_API_KEY;
+  async function getQuotientScore(fid: number, apiKey: string) {
+    const response = await fetch('https://api.quotient.social/v1/user-reputation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fids: [fid], api_key: apiKey }),
+    });
+    const data = await response.json();
+    return data.data?.[0]?.quotientScore ?? null;
+  }
+
+  if (!QUOTIENT_API_KEY) {
+    return NextResponse.json({ message: 'Quotient API key not configured.' }, { status: 500 });
+  }
+  const quotientScore = await getQuotientScore(posterFid, QUOTIENT_API_KEY);
+  if (quotientScore === null || quotientScore < QUOTIENT_SCORE_THRESHOLD) {
+    return NextResponse.json({
+      message: `You need a higher Quotient score (${QUOTIENT_SCORE_THRESHOLD}) to post jobs. Your score: ${quotientScore ?? 'N/A'}`,
+      allowed: false,
+    }, { status: 403 });
+  }
+
   const supabase = createSupabaseServerClient(); // Server-side Supabase client
 
   try {
