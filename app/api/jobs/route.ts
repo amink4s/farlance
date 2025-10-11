@@ -11,7 +11,7 @@ import { sendFrameNotification } from '@/lib/notification-client'; // For sendin
 
 // --- Configuration ---
 // Set the recommended quality threshold (0.5 is the starting point)
-const NEYNAR_SCORE_THRESHOLD = 0.99;
+const NEYNAR_SCORE_THRESHOLD = 0.5;
 
 // Initialize a single Neynar API client instance for ALL Neynar interactions (notifications, score check, etc.)
 // FIX 1: We only need one neynarClient, and we need to ensure the apiKey is treated as a string.
