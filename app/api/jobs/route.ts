@@ -176,3 +176,41 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'An unexpected error occurred' }, { status: 500 });
   }
 }
+// app/api/jobs/route.ts (ADD THIS NEW FUNCTION AFTER THE EXISTING POST FUNCTION)
+
+export async function PATCH(request: Request) {
+  // We expect the request body to contain the job ID and the poster's Supabase ID for verification.
+  const { jobId, posterId } = await request.json();
+
+  if (!jobId || !posterId) {
+    return NextResponse.json(
+      { success: false, message: 'Missing job ID or poster ID for authorization.' },
+      { status: 400 }
+    );
+  }
+
+  const supabase = createSupabaseServerClient(); // Server-side Supabase client
+
+  try {
+    // 1. Update the job status to 'done'.
+    // 2. IMPORTANT: We use .eq('poster_id', posterId) to ensure only the owner can close the job.
+    const { error } = await supabase
+      .from('jobs')
+      .update({ status: 'done' })
+      .eq('id', jobId)
+      .eq('poster_id', posterId)
+      .select();
+
+    if (error) {
+      console.error("Error updating job status:", error);
+      // Check if it's a security/authorization error (e.g., no rows updated)
+      return NextResponse.json({ success: false, message: 'Failed to close job or unauthorized.' }, { status: 403 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Job successfully marked as done.' }, { status: 200 });
+
+  } catch (error) {
+    console.error("Unhandled error during job status update:", error);
+    return NextResponse.json({ success: false, message: 'An unexpected error occurred.' }, { status: 500 });
+  }
+}
