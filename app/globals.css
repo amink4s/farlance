@@ -23,3 +23,8 @@ body {
   font-style: normal;
   font-size: 80%;
 }
+
+.disable-native-scroll {
+  /* Prevents pull-to-refresh behavior on mobile devices */
+  overscroll-behavior-y: contain !important; 
+}

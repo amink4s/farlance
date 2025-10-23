@@ -99,7 +99,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className="bg-background">
+      {/* MODIFIED: Added 'disable-native-scroll' class */}
+      <body className="bg-background disable-native-scroll">
         <Suspense fallback={<div>Loading Farlance...</div>}>
           <Providers>{children}</Providers>
         </Suspense>
