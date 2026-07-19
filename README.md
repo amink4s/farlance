@@ -110,3 +110,11 @@ To get started building your own frame, follow these steps:
 - [OnchainKit Documentation](https://docs.base.org/builderkits/onchainkit/getting-started)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+
+<!-- hypertribe:sponsors:start -->
+## Sponsors
+
+[![farlance Sponsors](https://api.tribe.run/tokens/H9pNExjexWZCnygsUpah9vTLPGbFetERBU36Hmgdq32A/sponsors.svg)](https://tribe.run/token/H9pNExjexWZCnygsUpah9vTLPGbFetERBU36Hmgdq32A)
+
+Become a sponsor on [Tribe.run](https://tribe.run/token/H9pNExjexWZCnygsUpah9vTLPGbFetERBU36Hmgdq32A).
+<!-- hypertribe:sponsors:end -->
